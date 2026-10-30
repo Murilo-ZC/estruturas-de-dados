@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BFS e DFS · Grafos interativos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#2E2640; --red:#FF4545; --teal:#066D73; --teal-l:#BFE3E5; --gray:#F3F3F3;
+  --ink:#2E2640; --muted:#6B6780; --line:#DDDAE5; --edge:#8A869C; --bg:#FAFAFC; --card:#FFFFFF;
+  --red-l:#FFE3E3;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;font-size:15px}
+a{color:var(--teal)}
+code,kbd,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+kbd{background:#fff;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;font-size:12px}
+
+/* topo */
+header.top{background:var(--navy);color:#fff}
+header.top .wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:12px 20px;max-width:1440px;margin:0 auto}
+header.top .brand{font-weight:800;letter-spacing:.2px;text-decoration:none;color:#fff;display:flex;align-items:center;gap:10px}
+header.top .brand .dot{width:12px;height:12px;border-radius:50%;background:var(--red);box-shadow:0 0 0 3px rgba(255,255,255,.18)}
+header.top nav{display:flex;gap:4px;flex-wrap:wrap}
+header.top nav a{color:#D9D5E6;text-decoration:none;padding:6px 12px;border-radius:999px;font-size:14px;font-weight:500}
+header.top nav a:hover{background:rgba(255,255,255,.08);color:#fff}
+header.top nav a.on{background:#fff;color:var(--navy);font-weight:700}
+
+main{max-width:1440px;margin:0 auto;padding:20px}
+h1{font-size:26px;margin:4px 0 6px;letter-spacing:-.3px}
+h2{font-size:17px;margin:0 0 8px}
+h3{font-size:15px;margin:0 0 6px}
+.lead{color:var(--muted);margin:0 0 16px;max-width:900px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+/* barra de ferramentas */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.seg button{border:0;background:transparent;padding:8px 12px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--navy);color:#fff}
+.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--navy)}
+.btn.primary{background:var(--red);border-color:var(--red);color:#fff;font-weight:600}
+.btn:disabled{opacity:.4;cursor:default}
+select,input[type=number],input[type=text]{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:#fff;color:var(--ink)}
+label.chk{display:inline-flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 10px}
+.hint{font-size:13.5px;color:var(--muted);background:#fff;border:1px dashed var(--line);border-radius:10px;padding:7px 12px;flex:1;min-width:240px}
+.hint b{color:var(--red)}
+
+/* grafo svg */
+svg.graph{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:12px;touch-action:none;user-select:none;-webkit-user-select:none}
+svg.graph.m-vertice{cursor:copy}
+svg.graph.m-aresta{cursor:crosshair}
+svg.graph.m-apagar{cursor:not-allowed}
+.edge .hit{stroke:transparent;stroke-width:16;fill:none;cursor:pointer}
+.edge .line{stroke:var(--edge);stroke-width:2.4;fill:none;transition:stroke .15s}
+.edge.hl .line{stroke:var(--red);stroke-width:4}
+.edge.tree .line{stroke:var(--navy);stroke-width:5}
+.edge.back .line{stroke:var(--red);stroke-width:2.6;stroke-dasharray:8 5}
+.edge.fwd .line{stroke:var(--teal);stroke-width:2.4;stroke-dasharray:8 5}
+.edge.cross .line,.edge.seen .line{stroke:#B6B2C4;stroke-width:2.2;stroke-dasharray:4 5}
+.edge.exam .line{stroke:var(--red);stroke-width:5;stroke-dasharray:none}
+.edge.dim{opacity:.22}
+.node circle{fill:#fff;stroke:var(--navy);stroke-width:2.6;transition:fill .15s}
+.node{cursor:pointer}
+.node .nlabel{font-weight:700;font-size:15px;fill:var(--navy);pointer-events:none}
+.node .nsub{font-size:12px;font-weight:600;fill:var(--teal);pointer-events:none;paint-order:stroke;stroke:#fff;stroke-width:4px}
+.node.pending circle{stroke:var(--red);stroke-width:4;stroke-dasharray:5 3}
+.node.hl circle{stroke:var(--red);stroke-width:4.5}
+.node.open circle{fill:var(--teal-l);stroke:var(--teal)}
+.node.done circle{fill:var(--navy);stroke:var(--navy)}
+.node.done .nlabel{fill:#fff}
+.node.cur circle{fill:var(--red);stroke:var(--red)}
+.node.cur .nlabel{fill:#fff}
+.node.dim{opacity:.3}
+.pill rect{fill:#fff;stroke:var(--navy);stroke-width:1.4}
+.pill text{font-size:12.5px;font-weight:700;fill:var(--navy);pointer-events:none}
+.pill.editable{cursor:text}
+.pill.editable:hover rect{stroke:var(--red);stroke-width:2}
+.edge.hl .pill rect{stroke:var(--red);stroke-width:2}
+.etag{font-size:11.5px;fill:var(--muted);font-style:italic;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:4px;pointer-events:none}
+.edge.hl .etag{fill:var(--red)}
+
+/* matrizes */
+.mwrap{overflow:auto;max-width:100%}
+table.mx{border-collapse:separate;border-spacing:0;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px}
+table.mx th,table.mx td{min-width:34px;height:32px;text-align:center;padding:2px 6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+table.mx thead th{background:var(--navy);color:#fff;font-weight:700;position:sticky;top:0}
+table.mx thead th:first-child{border-top-left-radius:8px}
+table.mx thead th:last-child{border-top-right-radius:8px}
+table.mx th{white-space:nowrap}
+table.mx thead th small{display:block;font-size:10.5px;font-weight:500;color:#C9C4DA;line-height:1.1}
+table.mx tbody th{background:var(--navy);color:#fff;font-weight:700;position:sticky;left:0}
+table.mx td{background:#fff}
+table.mx td.zero,table.mx td.nul{color:#B4B0C2}
+table.mx td.pos{color:var(--navy);font-weight:700}
+table.mx td.neg{color:var(--teal);font-weight:700}
+table.mx td.diag{background:#F7F6FA}
+table.mx td.asym{background:var(--red-l)}
+table.mx td.edit{cursor:pointer}
+table.mx td.edit:hover{outline:2px solid var(--teal);outline-offset:-2px}
+table.mx td.hl,table.mx th.hl{background:#FFD0D0 !important;color:var(--navy)}
+table.mx th.hl{background:var(--red) !important;color:#fff}
+table.mx td.cross{background:#FFF0F0}
+table.mx td.scan{background:#E7F4F5}
+table.mx td.exam{background:var(--red) !important;color:#fff !important}
+table.mx td input{width:52px;font:inherit;text-align:center;border:2px solid var(--red);border-radius:6px;padding:2px}
+@keyframes flash{0%{background:#FF9A9A}100%{background:#fff}}
+table.mx td.flash{animation:flash 1.4s ease-out}
+
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--navy);background:#fff;display:inline-block}
+.ln{width:26px;height:0;border-top:3px solid var(--edge);display:inline-block}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.fact{background:var(--gray);border-radius:10px;padding:6px 10px;font-size:13.5px}
+.fact.ok{background:#E2F2F3;color:var(--teal)}
+.fact.warn{background:var(--red-l);color:#B32626}
+.note{font-size:13.5px;background:var(--gray);border-left:4px solid var(--teal);border-radius:8px;padding:10px 12px;margin-top:10px}
+.note.red{border-left-color:var(--red)}
+footer{max-width:1440px;margin:10px auto 30px;padding:0 20px;color:var(--muted);font-size:13px}
+.floatin{position:fixed;z-index:20;background:#fff;border:2px solid var(--red);border-radius:10px;padding:6px;box-shadow:0 8px 24px rgba(46,38,64,.2);display:flex;gap:6px;align-items:center;font-size:13px}
+.floatin input{width:80px}
+
+.layout{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.25fr);gap:16px;align-items:start}
+@media (max-width:1100px){.layout{grid-template-columns:1fr}.layout > .col:last-child{order:-1}}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+table.mx td.edit{cursor:pointer;user-select:none}
+.nctl{display:inline-flex;align-items:center;gap:6px;font-size:14px}
+.nctl button{width:32px;padding:6px 0}
+details summary{cursor:pointer;font-size:13.5px;color:var(--teal);font-weight:600;margin-top:10px}
+textarea{width:100%;min-height:110px;font-family:"JetBrains Mono",monospace;font-size:13px;border:1px solid var(--line);border-radius:10px;padding:8px;margin-top:6px}
+pre.code{margin:0;font-family:"JetBrains Mono",monospace;font-size:13px;line-height:1.25;background:#fff}
+pre.code div{padding:3px 10px;border-left:4px solid transparent;white-space:pre-wrap;border-radius:0 6px 6px 0}
+pre.code div.on{background:var(--red-l);border-left-color:var(--red);color:#7A1010;font-weight:700}
+pre.code .lno{display:inline-block;width:22px;color:#B4B0C2;font-weight:400}
+.player{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.player .count{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--muted);margin-left:auto}
+.msg{margin-top:12px;background:var(--navy);color:#fff;border-radius:12px;padding:12px 14px;font-size:15px;min-height:52px}
+.msg b{color:#FFB3B3}
+.ds{display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-height:44px;padding:8px;background:var(--gray);border-radius:10px}
+.ds .box{min-width:38px;height:38px;border-radius:8px;background:var(--teal-l);border:2px solid var(--teal);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--navy)}
+.ds .box.top{background:var(--red);border-color:var(--red);color:#fff}
+.ds .end{font-size:12px;color:var(--muted)}
+.ds .empty{color:var(--muted);font-size:13px}
+.chips{display:flex;gap:4px;flex-wrap:wrap;align-items:center;font-weight:700}
+.chips .c{background:var(--navy);color:#fff;border-radius:999px;padding:2px 10px;font-size:13px}
+.chips .arr{color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:700px){.grid2{grid-template-columns:1fr}}
+table.vt td.cor{font-family:Inter,system-ui,sans-serif;font-size:12px}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap"><a class="brand" href="index.html"><span class="dot"></span>Grafos interativos</a><nav><a href="index.html">Início</a><a href="grafos-e-digrafos.html">Grafo × Dígrafo</a><a href="matrizes.html">Incidência e pesos</a><a href="busca-bfs-dfs.html" class="on">BFS e DFS</a></nav></div></header>
+<main>
+  <h1>Busca em largura (BFS) e em profundidade (DFS)</h1>
+  <p class="lead">O grafo abaixo é definido pela <b>matriz de adjacência</b>. Clique nas células para ligar ou desligar arestas,
+  escolha o vértice inicial (ou dê duplo clique em um vértice) e execute o algoritmo passo a passo. Durante a busca, a linha da matriz que está sendo percorrida fica destacada.</p>
+
+  <div class="toolbar" id="toolbar">
+    <div class="seg" id="algSeg"><button type="button" data-a="bfs" class="on">BFS · fila</button><button type="button" data-a="dfs">DFS · pilha</button></div>
+    <label class="chk">início <select id="inicio"></select></label>
+    <label class="chk"><input type="checkbox" id="dir"> Direcionado</label>
+    <label class="chk" title="Quando a busca termina e ainda há vértices brancos, recomeça a partir do próximo"><input type="checkbox" id="todas"> Visitar todas as componentes</label>
+    <select id="preset">
+      <option value="">Carregar exemplo…</option>
+      <option value="aula">Grafo de 8 vértices</option>
+      <option value="arvore">Árvore</option>
+      <option value="comp">Três componentes</option>
+      <option value="grade">Labirinto (grade 3×3)</option>
+      <option value="ciclo">Dígrafo com ciclo</option>
+      <option value="dag">Dígrafo acíclico (DAG)</option>
+      <option value="aleatorio">Aleatório</option>
+    </select>
+  </div>
+
+  <div class="layout">
+    <div class="col">
+      <section class="card">
+        <h2>Matriz de adjacência</h2>
+        <div class="toolbar" style="margin:0 0 10px">
+          <span class="nctl">n = <b id="nval"></b> <button class="btn" id="menos" type="button">−</button><button class="btn" id="mais" type="button">+</button></span>
+          <button class="btn" id="zerar" type="button">Zerar</button>
+        </div>
+        <div class="mwrap"><table class="mx" id="mx"></table></div>
+        <p class="small muted" id="mxHow" style="margin:8px 0 0"></p>
+        <details>
+          <summary>Colar / copiar matriz</summary>
+          <textarea id="txt" spellcheck="false"></textarea>
+          <div style="display:flex;gap:8px;margin-top:6px"><button class="btn primary" id="aplicar" type="button">Aplicar matriz</button><span class="small muted" id="txtMsg"></span></div>
+        </details>
+      </section>
+      <section class="card">
+        <h2>Pseudocódigo</h2>
+        <pre class="code" id="code"></pre>
+        <p class="small muted" id="codeNote" style="margin:8px 0 0"></p>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="card">
+        <svg id="svgB" class="graph" viewBox="0 0 640 440"></svg>
+        <div class="player">
+          <button class="btn" id="bIni" type="button" title="Início">⏮</button>
+          <button class="btn" id="bVolta" type="button" title="Passo anterior (←)">◀ Voltar</button>
+          <button class="btn primary" id="bPasso" type="button" title="Próximo passo (→)">Avançar ▶</button>
+          <button class="btn" id="bPlay" type="button" title="Reproduzir (espaço)">⏵ Reproduzir</button>
+          <button class="btn" id="bFim" type="button" title="Fim">⏭</button>
+          <label class="small muted">velocidade <input type="range" id="vel" min="200" max="2000" step="100" value="900" style="direction:rtl;vertical-align:middle"></label>
+          <span class="count" id="count"></span>
+        </div>
+        <div class="msg" id="msg"></div>
+        <div class="legend" id="legend" style="margin-top:10px"></div>
+      </section>
+      <div class="grid2">
+        <section class="card">
+          <h3 id="dsTitle">Fila Q</h3>
+          <div class="ds" id="ds"></div>
+          <h3 style="margin-top:14px">Ordem de descoberta</h3>
+          <div class="chips" id="ordem"></div>
+        </section>
+        <section class="card">
+          <h3>Estado dos vértices</h3>
+          <div class="mwrap"><table class="mx vt" id="vt"></table></div>
+        </section>
+      </div>
+    </div>
+  </div>
+</main>
+<footer>Estruturas de Dados · Inteli — material de apoio às aulas de grafos. Cada página é um único arquivo HTML: funciona aberta direto no navegador.</footer>
+<script>
+/* ===== Biblioteca comum: desenho de grafos em SVG e tabelas de matrizes ===== */
+const NS = 'http://www.w3.org/2000/svg';
+const RAIO = 20;
+const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+function svgEl(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  if (attrs) for (const k in attrs) {
+    if (k === 'class') e.className = attrs[k];
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  }
+  for (const c of kids) { if (c == null) continue; e.append(c.nodeType ? c : String(c)); }
+  return e;
+}
+function proximoNome(usados) {
+  for (const L of LETRAS) if (!usados.has(L)) return L;
+  let i = 1; while (usados.has('V' + i)) i++; return 'V' + i;
+}
+function proximoNumero(usados) { let i = 1; while (usados.has(i)) i++; return i; }
+function fmtNum(x) { return Number.isInteger(x) ? String(x) : String(+x.toFixed(2)); }
+
+function emDirecao(p, x, y, d) {
+  const dx = x - p.x, dy = y - p.y, L = Math.hypot(dx, dy);
+  if (L < 1e-6) return { x: p.x, y: p.y };
+  return { x: p.x + dx / L * d, y: p.y + dy / L * d };
+}
+
+/* Geometria das arestas: curva arestas paralelas/antiparalelas e desenha laços. */
+function geometriaArestas(porId, arestas, dirigido) {
+  const pares = new Map(), lacos = new Map(), out = {};
+  for (const e of arestas) {
+    if (e.u === e.v) { if (!lacos.has(e.u)) lacos.set(e.u, []); lacos.get(e.u).push(e); }
+    else {
+      const k = Math.min(e.u, e.v) + '|' + Math.max(e.u, e.v);
+      if (!pares.has(k)) pares.set(k, []); pares.get(k).push(e);
+    }
+  }
+  for (const lista of pares.values()) {
+    const m = lista.length;
+    lista.forEach((e, i) => {
+      const a = porId[e.u], b = porId[e.v];
+      const lo = e.u < e.v ? a : b, hi = e.u < e.v ? b : a;
+      const dx = hi.x - lo.x, dy = hi.y - lo.y, L = Math.hypot(dx, dy) || 1;
+      const nx = -dy / L, ny = dx / L;
+      const off = (i - (m - 1) / 2) * 38;
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      const cx = mx + nx * off * 2, cy = my + ny * off * 2;
+      const s = emDirecao(a, cx, cy, RAIO + 1), t = emDirecao(b, cx, cy, RAIO + (dirigido ? 3 : 1));
+      out[e.id] = { d: `M${s.x},${s.y} Q${cx},${cy} ${t.x},${t.y}`, lx: mx + nx * off, ly: my + ny * off };
+    });
+  }
+  for (const [nid, lista] of lacos) {
+    const n = porId[nid];
+    lista.forEach((e, i) => {
+      const s = 34 + i * 18, x = n.x, y = n.y;
+      out[e.id] = {
+        d: `M${x - 10},${y - RAIO + 3} C${x - s},${y - RAIO - s * 1.5} ${x + s},${y - RAIO - s * 1.5} ${x + 10},${y - RAIO + 3}`,
+        lx: x, ly: y - RAIO + 1 - s * 1.125
+      };
+    });
+  }
+  return out;
+}
+
+const MARCADORES = { def: '#8A869C', red: '#FF4545', navy: '#2E2640', teal: '#066D73', gray: '#B6B2C4' };
+function marcadorPara(cls) {
+  cls = cls || '';
+  if (/\b(hl|back|exam)\b/.test(cls)) return 'red';
+  if (/\btree\b/.test(cls)) return 'navy';
+  if (/\bfwd\b/.test(cls)) return 'teal';
+  if (/\b(cross|seen)\b/.test(cls)) return 'gray';
+  return 'def';
+}
+
+/* g = { nodes:[{id,x,y,name,cls,sub}], edges:[{id,u,v,cls,label,tag}], directed, editableWeights } */
+function desenharGrafo(svg, g) {
+  const pre = svg.id || 'g';
+  svg.textContent = '';
+  const defs = svgEl('defs', null, svg);
+  for (const k in MARCADORES) {
+    const m = svgEl('marker', { id: `${pre}-m-${k}`, viewBox: '0 0 10 10', refX: 9, refY: 5,
+      markerWidth: 12, markerHeight: 12, markerUnits: 'userSpaceOnUse', orient: 'auto' }, defs);
+    svgEl('path', { d: 'M0,0 L10,5 L0,10 z', fill: MARCADORES[k] }, m);
+  }
+  const porId = {}; g.nodes.forEach(n => porId[n.id] = n);
+  const geo = geometriaArestas(porId, g.edges, g.directed);
+  const gE = svgEl('g', null, svg), gN = svgEl('g', null, svg);
+  for (const e of g.edges) {
+    const G = geo[e.id];
+    const grp = svgEl('g', { class: 'edge ' + (e.cls || ''), 'data-edge': e.id }, gE);
+    svgEl('path', { d: G.d, class: 'hit' }, grp);
+    const p = svgEl('path', { d: G.d, class: 'line' }, grp);
+    if (g.directed) p.setAttribute('marker-end', `url(#${pre}-m-${marcadorPara(e.cls)})`);
+    const temPilula = e.label != null && e.label !== '';
+    if (temPilula) {
+      const txt = String(e.label), w = Math.max(30, 16 + txt.length * 7.6);
+      const pg = svgEl('g', { class: 'pill' + (g.editableWeights ? ' editable' : ''), transform: `translate(${G.lx},${G.ly})` }, grp);
+      if (g.editableWeights) pg.setAttribute('data-weight', e.id);
+      svgEl('rect', { x: -w / 2, y: -10, width: w, height: 20, rx: 6 }, pg);
+      const t = svgEl('text', { 'text-anchor': 'middle', 'dominant-baseline': 'central', y: 1 }, pg); t.textContent = txt;
+    }
+    if (e.tag) {
+      const t = svgEl('text', { class: 'etag', x: G.lx, y: temPilula ? G.ly - 17 : G.ly + 4, 'text-anchor': 'middle' }, grp);
+      t.textContent = e.tag;
+    }
+  }
+  for (const n of g.nodes) {
+    const grp = svgEl('g', { class: 'node ' + (n.cls || ''), 'data-node': n.id, transform: `translate(${n.x},${n.y})` }, gN);
+    svgEl('circle', { r: RAIO }, grp);
+    const t = svgEl('text', { class: 'nlabel', 'text-anchor': 'middle', 'dominant-baseline': 'central', y: 1 }, grp);
+    t.textContent = n.name;
+    if (n.sub) { const s = svgEl('text', { class: 'nsub', 'text-anchor': 'middle', y: RAIO + 16 }, grp); s.textContent = n.sub; }
+  }
+}
+
+function pontoSvg(svg, evt) {
+  const p = svg.createSVGPoint(); p.x = evt.clientX; p.y = evt.clientY;
+  return p.matrixTransform(svg.getScreenCTM().inverse());
+}
+
+/* Interação de edição comum. ctx: getMode, addNode(x,y), addEdge(u,v), deleteNode(id), deleteEdge(id),
+   edgeClick(id, evt)?, weightClick(id, evt)?, moved(), setPending(id|null), hover(obj|null) */
+function ligarEditor(svg, ctx) {
+  let pendente = null, arrasto = null;
+  svg.addEventListener('pointerdown', evt => {
+    if (evt.button !== 0) return;
+    const alvo = evt.target.closest('[data-weight],[data-node],[data-edge]');
+    const modo = ctx.getMode();
+    const p = pontoSvg(svg, evt);
+    if (alvo && alvo.dataset.weight !== undefined && modo !== 'apagar') { evt.preventDefault(); ctx.weightClick && ctx.weightClick(+alvo.dataset.weight, evt); return; }
+    if (alvo && alvo.dataset.node !== undefined) {
+      const id = +alvo.dataset.node;
+      if (modo === 'apagar') { ctx.deleteNode(id); return; }
+      if (modo === 'aresta') {
+        if (pendente === null) pendente = id;
+        else { const u = pendente; pendente = null; ctx.setPending(null); ctx.addEdge(u, id); return; }
+        ctx.setPending(pendente); return;
+      }
+      arrasto = { id, dx: 0, dy: 0 };
+      const n = ctx.node(id); arrasto.dx = n.x - p.x; arrasto.dy = n.y - p.y;
+      svg.setPointerCapture(evt.pointerId); return;
+    }
+    if (alvo && alvo.dataset.edge !== undefined) {
+      const id = +alvo.dataset.edge;
+      if (modo === 'apagar') { ctx.deleteEdge(id); return; }
+      ctx.edgeClick && ctx.edgeClick(id, evt); return;
+    }
+    if (modo === 'vertice') ctx.addNode(p.x, p.y);
+    else if (modo === 'aresta' && pendente !== null) { pendente = null; ctx.setPending(null); }
+  });
+  svg.addEventListener('pointermove', evt => {
+    if (arrasto) {
+      const p = pontoSvg(svg, evt), vb = svg.viewBox.baseVal, n = ctx.node(arrasto.id);
+      n.x = Math.max(RAIO + 4, Math.min(vb.width - RAIO - 4, p.x + arrasto.dx));
+      n.y = Math.max(RAIO + 4, Math.min(vb.height - RAIO - 4, p.y + arrasto.dy));
+      ctx.moved(); return;
+    }
+    if (!ctx.hover) return;
+    const alvo = evt.target.closest('[data-node],[data-edge]');
+    if (!alvo) ctx.hover(null);
+    else if (alvo.dataset.node !== undefined) ctx.hover({ type: 'node', id: +alvo.dataset.node });
+    else ctx.hover({ type: 'edge', id: +alvo.dataset.edge });
+  });
+  const fim = () => { arrasto = null; };
+  svg.addEventListener('pointerup', fim);
+  svg.addEventListener('pointercancel', fim);
+  svg.addEventListener('pointerleave', () => { if (!arrasto && ctx.hover) ctx.hover(null); });
+  return { cancelar() { pendente = null; ctx.setPending(null); }, get pendente() { return pendente; } };
+}
+
+/* Tabela de matriz. spec: corner, rows:[{key,label}], cols:[{key,label,sub}], cell(r,c)->{text,cls,title} */
+function desenharMatriz(table, spec) {
+  const ant = table._prev || null, agora = new Map();
+  table.textContent = '';
+  const thead = h('thead'), tr = h('tr');
+  tr.append(h('th', { class: 'corner' }, spec.corner || ''));
+  for (const c of spec.cols) {
+    const th = h('th', null, c.label); for (const sb of [].concat(c.sub || [])) th.append(h('small', null, sb));
+    th.dataset.col = c.key; if (c.title) th.title = c.title; tr.append(th);
+  }
+  thead.append(tr); table.append(thead);
+  const tb = h('tbody');
+  for (const r of spec.rows) {
+    const row = h('tr'), th = h('th', null, r.label); th.dataset.row = r.key; row.append(th);
+    for (const c of spec.cols) {
+      const v = spec.cell(r, c), td = h('td', { class: v.cls || '' }, v.text);
+      if (v.title) td.title = v.title;
+      td.dataset.row = r.key; td.dataset.col = c.key;
+      const k = r.key + '|' + c.key; agora.set(k, v.text);
+      if (ant && !spec.semFlash && ant.get(k) !== v.text) td.classList.add('flash');
+      row.append(td);
+    }
+    tb.append(row);
+  }
+  table.append(tb);
+  table._prev = agora;
+}
+/* Destaca células/cabeçalhos: pred(row,col) -> classe ou null */
+function marcarMatriz(table, fn) {
+  table.querySelectorAll('td,th').forEach(c => {
+    c.classList.remove('hl', 'cross', 'scan', 'exam');
+    const cls = fn(c.dataset.row, c.dataset.col, c.tagName);
+    if (cls) cls.split(' ').forEach(x => c.classList.add(x));
+  });
+}
+
+/* Campo flutuante para digitar um valor */
+function pedirValor(x, y, inicial, rotulo, aoConfirmar) {
+  document.querySelectorAll('.floatin').forEach(e => e.remove());
+  const inp = h('input', { type: 'text', value: inicial ?? '' });
+  const box = h('div', { class: 'floatin' }, rotulo, inp, h('span', { class: 'muted' }, '↵'));
+  box.style.left = Math.min(window.innerWidth - 200, x + 8) + 'px';
+  box.style.top = Math.min(window.innerHeight - 60, y + 8) + 'px';
+  document.body.append(box);
+  inp.focus(); inp.select();
+  let feito = false;
+  const fechar = ok => { if (feito) return; feito = true; box.remove(); if (ok) aoConfirmar(inp.value.trim()); };
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') fechar(true); if (e.key === 'Escape') fechar(false); e.stopPropagation(); });
+  inp.addEventListener('blur', () => setTimeout(() => fechar(true), 80));
+}
+
+/* Barra de modos */
+function barraModos(cont, modos, inicial, aoMudar) {
+  const seg = h('div', { class: 'seg' });
+  const btns = {};
+  for (const [k, txt, tecla] of modos) {
+    const b = h('button', { type: 'button', title: `Atalho: ${tecla}` }, txt);
+    b.addEventListener('click', () => set(k));
+    btns[k] = b; seg.append(b);
+  }
+  function set(k) { for (const x in btns) btns[x].classList.toggle('on', x === k); aoMudar(k); }
+  cont.prepend(seg);
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input,textarea,select')) return;
+    for (const [k, , tecla] of modos) if (e.key.toLowerCase() === tecla.toLowerCase()) set(k);
+  });
+  set(inicial);
+  return set;
+}
+
+
+const svg = document.getElementById('svgB');
+const chkDir = document.getElementById('dir'), chkTodas = document.getElementById('todas'), selIni = document.getElementById('inicio');
+let n = 0, M = [], pos = [], alg = 'bfs', s = 0, passos = [], k = 0, timer = null;
+const L = i => LETRAS[i] || ('V' + i);
+const dir = () => chkDir.checked;
+const chave = (u, v) => dir() ? u + '>' + v : Math.min(u, v) + '-' + Math.max(u, v);
+
+/* ---------- exemplos ---------- */
+const PRESETS = {
+  aula: { dir: false, n: 8, p: [[90,110],[250,60],[250,220],[420,80],[420,230],[260,380],[570,160],[560,360]],
+    e: 'AB AC BD BE CE CF EG FH GH' },
+  arvore: { dir: false, n: 7, p: [[320,60],[180,170],[460,170],[100,300],[250,300],[390,300],[540,300]], e: 'AB AC BD BE CF CG' },
+  comp: { dir: false, n: 8, p: [[100,100],[260,80],[180,230],[420,90],[560,120],[480,250],[140,370],[400,370]], e: 'AB BC CA DE EF FD GH' },
+  grade: { dir: false, n: 9, p: [[160,80],[320,80],[480,80],[160,220],[320,220],[480,220],[160,360],[320,360],[480,360]], e: 'AB BC AD CF DE EH FI GH' },
+  ciclo: { dir: true, n: 6, p: [[90,220],[250,90],[420,90],[540,230],[400,370],[230,360]], e: 'AB BC CD DE EB AF FE' },
+  dag: { dir: true, n: 6, p: [[80,220],[230,100],[230,340],[400,100],[400,340],[560,220]], e: 'AB AC BD BE CE DF EF' },
+};
+function posCirculo(m) { return Array.from({ length: m }, (_, i) => { const a = -Math.PI / 2 + 2 * Math.PI * i / m; return [320 + 175 * Math.cos(a), 220 + 170 * Math.sin(a)]; }); }
+function carregar(nome) {
+  if (nome === 'aleatorio') {
+    const m = 6 + Math.floor(Math.random() * 3);
+    n = m; M = Array.from({ length: m }, () => Array(m).fill(0)); pos = posCirculo(m).map(([x, y]) => ({ x, y }));
+    for (let u = 0; u < m; u++) for (let v = 0; v < m; v++) if (u !== v && Math.random() < (dir() ? .2 : .14)) { M[u][v] = 1; if (!dir()) M[v][u] = 1; }
+  } else {
+    const p = PRESETS[nome]; if (!p) return;
+    chkDir.checked = p.dir; n = p.n;
+    M = Array.from({ length: n }, () => Array(n).fill(0));
+    for (const par of p.e.split(' ')) { const u = LETRAS.indexOf(par[0]), v = LETRAS.indexOf(par[1]); M[u][v] = 1; if (!p.dir) M[v][u] = 1; }
+    pos = p.p.map(([x, y]) => ({ x, y }));
+  }
+  s = 0; document.getElementById('mx')._prev = null; reiniciar();
+}
+function mudarN(novo) {
+  novo = Math.max(2, Math.min(12, novo)); if (novo === n) return;
+  const N2 = Array.from({ length: novo }, (_, i) => Array.from({ length: novo }, (_, j) => (i < n && j < n) ? M[i][j] : 0));
+  M = N2; n = novo; pos = posCirculo(n).map(([x, y]) => ({ x, y }));
+  if (s >= n) s = 0; reiniciar();
+}
+
+/* ---------- geração dos passos ---------- */
+const PSEUDO = {
+  bfs: ['BFS(G, s):',
+    '  para cada v ∈ V: cor[v] ← BRANCO; dist[v] ← ∞; pai[v] ← NULO',
+    '  cor[s] ← CINZA; dist[s] ← 0',
+    '  Q ← fila vazia; ENFILEIRA(Q, s)',
+    '  enquanto Q ≠ ∅:',
+    '    u ← DESENFILEIRA(Q)',
+    '    para v ← 0 até n−1:   ▸ linha u da matriz',
+    '      se M[u][v] = 1 e cor[v] = BRANCO:',
+    '        cor[v] ← CINZA; dist[v] ← dist[u] + 1; pai[v] ← u',
+    '        ENFILEIRA(Q, v)',
+    '    cor[u] ← PRETO'],
+  dfs: ['DFS(G, s):',
+    '  para cada v ∈ V: cor[v] ← BRANCO; pai[v] ← NULO',
+    '  tempo ← 0',
+    '  DFS-VISITA(s)',
+    'DFS-VISITA(u):            ▸ u entra na pilha',
+    '  tempo ← tempo + 1; d[u] ← tempo; cor[u] ← CINZA',
+    '  para v ← 0 até n−1:     ▸ linha u da matriz',
+    '    se M[u][v] = 1:',
+    '      se cor[v] = BRANCO: pai[v] ← u; DFS-VISITA(v)',
+    '      senão se cor[v] = CINZA: RETORNO ⇒ ciclo *',
+    '  cor[u] ← PRETO; tempo ← tempo + 1; f[u] ← tempo'],
+};
+function raizes() { const r = [s]; if (chkTodas.checked) for (let i = 0; i < n; i++) if (i !== s) r.push(i); return r; }
+
+function gerarBFS() {
+  const C = Array(n).fill(0), dist = Array(n).fill(null), pai = Array(n).fill(-1), es = {}, ordem = [], Q = [], out = [];
+  const snap = (linhas, msg, cur = -1, exam = null) => out.push({ C: [...C], dist: [...dist], pai: [...pai], es: { ...es }, ordem: [...ordem], est: [...Q], linhas, msg, cur, exam });
+  snap([1], 'Inicialização: todos os vértices ficam <b>BRANCOS</b> (não descobertos), dist = ∞ e pai = NULO.');
+  let comps = 0;
+  for (const r of raizes()) {
+    if (C[r] !== 0) continue;
+    comps++;
+    C[r] = 1; dist[r] = 0; Q.push(r); ordem.push(r);
+    snap([2, 3], (comps > 1 ? `A fila esvaziou, mas <b>${L(r)}</b> ainda é branco: começa uma nova busca (outra componente). ` : '') +
+      `<b>${L(r)}</b> recebe dist = 0, fica CINZA e entra na fila.`);
+    while (Q.length) {
+      const u = Q.shift();
+      snap([4, 5], `Desenfileira <b>${L(u)}</b> (o mais antigo da fila). Agora percorremos a <b>linha ${L(u)}</b> da matriz procurando 1s.`, u);
+      let achou = false;
+      for (let v = 0; v < n; v++) {
+        if (!M[u][v]) continue; achou = true;
+        const kk = chave(u, v);
+        if (C[v] === 0) {
+          C[v] = 1; dist[v] = dist[u] + 1; pai[v] = u; es[kk] = 'tree'; Q.push(v); ordem.push(v);
+          snap([6, 7, 8, 9], `M[${L(u)}][${L(v)}] = 1 e <b>${L(v)}</b> é BRANCO → descoberto! dist = ${dist[v]}, pai = ${L(u)}, entra no fim da fila.`, u, { u, v });
+        } else {
+          if (!es[kk]) es[kk] = 'seen';
+          snap([6, 7], `M[${L(u)}][${L(v)}] = 1, mas <b>${L(v)}</b> já está ${C[v] === 1 ? 'CINZA (na fila)' : 'PRETO (finalizado)'} → nada a fazer.`, u, { u, v });
+        }
+      }
+      C[u] = 2;
+      snap([10], `${achou ? 'Linha' : 'A linha'} ${L(u)} ${achou ? 'percorrida' : 'não tem nenhum 1'}: <b>${L(u)}</b> fica PRETO.` + (Q.length ? '' : ' A fila está vazia.'));
+    }
+  }
+  const nao = C.map((c, i) => c ? null : L(i)).filter(Boolean);
+  snap([], `<b>Fim da BFS.</b> Ordem: ${ordem.map(L).join(', ')}. As arestas escuras formam a árvore BFS; dist[v] = menor número de arestas de ${L(s)} até v.` +
+    (nao.length ? ` Não alcançados a partir de ${L(s)}: ${nao.join(', ')}.` : '') + (comps > 1 ? ` Foram ${comps} buscas (componentes).` : ''));
+  return out;
+}
+
+function gerarDFS() {
+  const C = Array(n).fill(0), pai = Array(n).fill(-1), d = Array(n).fill(null), f = Array(n).fill(null), es = {}, ordem = [], P = [], out = [];
+  let tempo = 0, comps = 0; const retornos = [];
+  const snap = (linhas, msg, cur = -1, exam = null) => out.push({ C: [...C], pai: [...pai], d: [...d], f: [...f], es: { ...es }, ordem: [...ordem], est: P.map(x => x.u), linhas, msg, cur, exam });
+  snap([1, 2], 'Inicialização: todos BRANCOS, pai = NULO, tempo = 0.');
+  const descobrir = (u, msg) => { tempo++; d[u] = tempo; C[u] = 1; ordem.push(u); P.push({ u, i: 0 }); snap([4, 5], msg + ` <b>${L(u)}</b> fica CINZA, d[${L(u)}] = ${tempo} e vai para o topo da pilha.`, u); };
+  for (const r of raizes()) {
+    if (C[r] !== 0) continue;
+    comps++;
+    descobrir(r, comps > 1 ? `Ainda há vértices brancos: nova chamada DFS-VISITA(${L(r)}) (outra componente).` : `Chama DFS-VISITA(${L(r)}).`);
+    while (P.length) {
+      const fr = P[P.length - 1], u = fr.u;
+      let v = fr.i; while (v < n && !M[u][v]) v++;
+      if (v < n) {
+        fr.i = v + 1; const kk = chave(u, v);
+        if (C[v] === 0) {
+          pai[v] = u; es[kk] = 'tree';
+          snap([6, 7, 8], `Na linha ${L(u)}: M[${L(u)}][${L(v)}] = 1 e <b>${L(v)}</b> é BRANCO → pai[${L(v)}] = ${L(u)}; desce para ${L(v)}.`, u, { u, v });
+          descobrir(v, `DFS-VISITA(${L(v)}):`);
+        } else if (C[v] === 1) {
+          if (!dir() && v === pai[u]) snap([6, 7], `M[${L(u)}][${L(v)}] = 1, mas ${L(v)} é o pai de ${L(u)}: é a mesma aresta da árvore, vista do outro lado. Ignora.`, u, { u, v });
+          else { es[kk] = 'back'; retornos.push(L(u) + (dir() ? '→' : '–') + L(v));
+            snap([6, 7, 9], `M[${L(u)}][${L(v)}] = 1 e <b>${L(v)}</b> está CINZA (ainda na pilha): aresta de <b>retorno</b> ${L(u)}${dir() ? '→' : '–'}${L(v)} ⇒ existe um <b>ciclo</b>!`, u, { u, v }); }
+        } else {
+          if (dir()) { es[kk] = d[u] < d[v] ? 'fwd' : 'cross';
+            snap([6, 7], `M[${L(u)}][${L(v)}] = 1, mas ${L(v)} já está PRETO: aresta de ${es[kk] === 'fwd' ? '<b>avanço</b> (leva a um descendente já finalizado)' : '<b>cruzamento</b> (leva a outro ramo já finalizado)'}.`, u, { u, v }); }
+          else snap([6, 7], `M[${L(u)}][${L(v)}] = 1, mas ${L(v)} já está PRETO: essa aresta já foi analisada a partir de ${L(v)}.`, u, { u, v });
+        }
+      } else {
+        C[u] = 2; tempo++; f[u] = tempo; P.pop();
+        const topo = P.length ? P[P.length - 1].u : -1;
+        snap([10], `Linha ${L(u)} terminada: <b>${L(u)}</b> fica PRETO, f[${L(u)}] = ${tempo} e sai da pilha.` + (topo >= 0 ? ` Volta (backtracking) para ${L(topo)}.` : ''), topo);
+      }
+    }
+  }
+  snap([], `<b>Fim da DFS.</b> Ordem de descoberta: ${ordem.map(L).join(', ')}. ` +
+    (retornos.length ? `<b>Ciclo detectado</b> (arestas de retorno: ${retornos.join(', ')}).` : 'Nenhuma aresta de retorno: <b>não há ciclo</b> alcançável' + (dir() ? ' (o dígrafo alcançado é acíclico).' : '.')) +
+    (comps > 1 ? ` Foram ${comps} chamadas a partir da raiz (componentes / árvores da floresta DFS).` : ''));
+  return out;
+}
+
+function reiniciar() {
+  parar();
+  selIni.innerHTML = ''; for (let i = 0; i < n; i++) selIni.append(h('option', { value: i }, L(i))); selIni.value = s;
+  passos = alg === 'bfs' ? gerarBFS() : gerarDFS(); k = 0;
+  document.getElementById('code').innerHTML = '';
+  PSEUDO[alg].forEach((t, i) => document.getElementById('code').append(h('div', { 'data-l': i }, h('span', { class: 'lno' }, i ? String(i) : ''), t)));
+  document.getElementById('codeNote').innerHTML = alg === 'dfs' ? '* Em grafo não direcionado, ignora-se o caso v = pai[u]: é a própria aresta da árvore vista do outro lado. No dígrafo, um vértice PRETO gera aresta de avanço ou de cruzamento.' : 'Cada vértice entra na fila uma única vez: ele é marcado CINZA no momento em que é descoberto.';
+  document.getElementById('dsTitle').textContent = alg === 'bfs' ? 'Fila Q (início → fim)' : 'Pilha de chamadas (base → topo)';
+  document.getElementById('legend').innerHTML = legenda();
+  desenharMatrizAdj(); render();
+  document.getElementById('txt').value = M.map(r => r.join(' ')).join('\n');
+}
+function legenda() {
+  const nd = (fill, stroke, t) => `<span><span class="sw" style="background:${fill};border-color:${stroke}"></span>${t}</span>`;
+  const ln = (st, t) => `<span><span class="ln" style="${st}"></span>${t}</span>`;
+  let s2 = nd('#fff', '#2E2640', 'branco: não descoberto') + nd('#BFE3E5', '#066D73', alg === 'bfs' ? 'cinza: na fila' : 'cinza: na pilha') +
+    nd('#FF4545', '#FF4545', 'atual') + nd('#2E2640', '#2E2640', 'preto: finalizado') +
+    ln('border-top:5px solid #2E2640', 'árvore') + ln('border-top:4px solid #FF4545', 'examinando');
+  if (alg === 'bfs') s2 += ln('border-top:3px dashed #B6B2C4', 'já descoberto');
+  else s2 += ln('border-top:3px dashed #FF4545', 'retorno (ciclo)') + (dir() ? ln('border-top:3px dashed #066D73', 'avanço') + ln('border-top:3px dashed #B6B2C4', 'cruzamento') : '');
+  return s2;
+}
+
+/* ---------- desenho ---------- */
+function desenharMatrizAdj() {
+  const rows = Array.from({ length: n }, (_, i) => ({ key: i, label: L(i) }));
+  desenharMatriz(document.getElementById('mx'), { corner: dir() ? 'de\\para' : '', rows, cols: rows,
+    cell: (r, c) => r.key === c.key ? { text: '0', cls: 'zero diag' } : { text: String(M[r.key][c.key]), cls: (M[r.key][c.key] ? 'pos' : 'zero') + ' edit' } });
+  document.getElementById('nval').textContent = n;
+  document.getElementById('mxHow').innerHTML = dir()
+    ? 'Clique em uma célula para criar/remover o arco <b>linha → coluna</b>. A BFS/DFS percorre a linha do vértice atual da esquerda para a direita.'
+    : 'Clique em uma célula para criar/remover a aresta; a posição espelhada muda junto (matriz simétrica). Os vizinhos são examinados em ordem alfabética.';
+}
+function render() {
+  const P = passos[k];
+  const nodes = pos.slice(0, n).map((p, i) => {
+    let cls = P.C[i] === 1 ? 'open' : P.C[i] === 2 ? 'done' : '';
+    if (i === P.cur) cls = 'cur';
+    let sub = '';
+    if (alg === 'bfs') sub = P.dist[i] !== null ? 'dist ' + P.dist[i] : '';
+    else if (P.d[i] !== null) sub = P.d[i] + '/' + (P.f[i] ?? '·');
+    return { id: i, x: p.x, y: p.y, name: L(i), cls, sub };
+  });
+  const edges = [];
+  for (let u = 0; u < n; u++) for (let v = 0; v < n; v++) {
+    if (u === v || !M[u][v]) continue;
+    if (!dir() && u > v) continue;
+    const kk = chave(u, v);
+    let cls = P.es[kk] || '';
+    if (P.exam && chave(P.exam.u, P.exam.v) === kk) cls += ' exam';
+    edges.push({ id: u * n + v, u, v, cls });
+  }
+  desenharGrafo(svg, { nodes, edges, directed: dir() });
+  // matriz: linha percorrida + célula examinada
+  marcarMatriz(document.getElementById('mx'), (r, c, tag) => {
+    if (r === undefined && c === undefined) return null;
+    r = r === undefined ? null : +r; c = c === undefined ? null : +c;
+    if (P.exam && tag === 'TD' && r === P.exam.u && c === P.exam.v) return 'exam';
+    if (P.cur >= 0 && r === P.cur) return tag === 'TH' ? 'hl' : 'scan';
+    return null;
+  });
+  // pseudocódigo
+  document.querySelectorAll('#code div').forEach(d => d.classList.toggle('on', P.linhas.includes(+d.dataset.l)));
+  document.getElementById('msg').innerHTML = P.msg;
+  document.getElementById('count').textContent = `passo ${k + 1} / ${passos.length}`;
+  // estrutura
+  const ds = document.getElementById('ds'); ds.innerHTML = '';
+  if (!P.est.length) ds.append(h('span', { class: 'empty' }, alg === 'bfs' ? 'fila vazia' : 'pilha vazia'));
+  else {
+    if (alg === 'bfs') ds.append(h('span', { class: 'end' }, 'início ▸'));
+    P.est.forEach((u, i) => ds.append(h('div', { class: 'box' + ((alg === 'dfs' && i === P.est.length - 1) ? ' top' : '') }, L(u))));
+    ds.append(h('span', { class: 'end' }, alg === 'bfs' ? '◂ fim' : '◂ topo'));
+  }
+  const ord = document.getElementById('ordem'); ord.innerHTML = '';
+  if (!P.ordem.length) ord.append(h('span', { class: 'muted small' }, '—'));
+  P.ordem.forEach((u, i) => { if (i) ord.append(h('span', { class: 'arr' }, '→')); ord.append(h('span', { class: 'c' }, L(u))); });
+  // tabela de vértices
+  const rows = Array.from({ length: n }, (_, i) => ({ key: i, label: L(i) }));
+  const corTxt = c => ['branco', 'cinza', 'preto'][c];
+  const cols = alg === 'bfs'
+    ? [{ key: 'cor', label: 'cor' }, { key: 'dist', label: 'dist' }, { key: 'pai', label: 'pai' }]
+    : [{ key: 'cor', label: 'cor' }, { key: 'd', label: 'd' }, { key: 'f', label: 'f' }, { key: 'pai', label: 'pai' }];
+  desenharMatriz(document.getElementById('vt'), { corner: 'v', rows, cols, cell: (r, c) => {
+    const i = r.key;
+    if (c.key === 'cor') return { text: corTxt(P.C[i]), cls: 'cor' };
+    if (c.key === 'dist') return P.dist[i] === null ? { text: '∞', cls: 'nul' } : { text: String(P.dist[i]), cls: 'pos' };
+    if (c.key === 'd') return P.d[i] === null ? { text: '—', cls: 'nul' } : { text: String(P.d[i]), cls: 'pos' };
+    if (c.key === 'f') return P.f[i] === null ? { text: '—', cls: 'nul' } : { text: String(P.f[i]), cls: 'pos' };
+    return P.pai[i] < 0 ? { text: 'NULO', cls: 'nul' } : { text: L(P.pai[i]), cls: 'pos' };
+  } });
+  marcarMatriz(document.getElementById('vt'), (r) => r !== undefined && +r === P.cur ? 'hl' : null);
+  document.getElementById('bVolta').disabled = document.getElementById('bIni').disabled = k === 0;
+  document.getElementById('bPasso').disabled = document.getElementById('bFim').disabled = k === passos.length - 1;
+}
+
+/* ---------- controles ---------- */
+function ir(x) { k = Math.max(0, Math.min(passos.length - 1, x)); render(); if (k === passos.length - 1) parar(); }
+function parar() { if (timer) clearInterval(timer); timer = null; document.getElementById('bPlay').textContent = '⏵ Reproduzir'; }
+function tocar() {
+  if (timer) return parar();
+  if (k === passos.length - 1) ir(0);
+  document.getElementById('bPlay').textContent = '⏸ Pausar';
+  timer = setInterval(() => ir(k + 1), +document.getElementById('vel').value);
+}
+document.getElementById('vel').addEventListener('input', () => { if (timer) { parar(); tocar(); } });
+document.getElementById('bIni').onclick = () => { parar(); ir(0); };
+document.getElementById('bVolta').onclick = () => { parar(); ir(k - 1); };
+document.getElementById('bPasso').onclick = () => { parar(); ir(k + 1); };
+document.getElementById('bFim').onclick = () => { parar(); ir(passos.length - 1); };
+document.getElementById('bPlay').onclick = tocar;
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,textarea,select')) return;
+  if (e.key === 'ArrowRight') { parar(); ir(k + 1); }
+  else if (e.key === 'ArrowLeft') { parar(); ir(k - 1); }
+  else if (e.key === ' ') { e.preventDefault(); tocar(); }
+});
+document.querySelectorAll('#algSeg button').forEach(b => b.addEventListener('click', () => {
+  alg = b.dataset.a; document.querySelectorAll('#algSeg button').forEach(x => x.classList.toggle('on', x === b)); reiniciar();
+}));
+selIni.addEventListener('change', () => { s = +selIni.value; reiniciar(); });
+chkTodas.addEventListener('change', reiniciar);
+chkDir.addEventListener('change', () => {
+  if (!dir()) { let mud = 0; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) if (M[i][j] && !M[j][i]) { M[j][i] = 1; mud++; } }
+  reiniciar();
+});
+document.getElementById('preset').addEventListener('change', e => { carregar(e.target.value); e.target.value = ''; });
+document.getElementById('mais').onclick = () => mudarN(n + 1);
+document.getElementById('menos').onclick = () => mudarN(n - 1);
+document.getElementById('zerar').onclick = () => { M = M.map(r => r.map(() => 0)); reiniciar(); };
+document.getElementById('mx').addEventListener('click', e => {
+  const td = e.target.closest('td'); if (!td) return;
+  const u = +td.dataset.row, v = +td.dataset.col; if (u === v) return;
+  M[u][v] = M[u][v] ? 0 : 1; if (!dir()) M[v][u] = M[u][v];
+  reiniciar();
+});
+document.getElementById('aplicar').onclick = () => {
+  const msg = document.getElementById('txtMsg');
+  const linhas = document.getElementById('txt').value.trim().split(/\n+/).map(l => l.trim().split(/[\s,;]+/).filter(Boolean).map(Number));
+  const m = linhas.length;
+  if (m < 2 || m > 12 || linhas.some(l => l.length !== m || l.some(x => !isFinite(x)))) { msg.textContent = 'A matriz precisa ser quadrada (2 a 12 linhas), só com números.'; return; }
+  M = linhas.map((l, i) => l.map((x, j) => (i !== j && x) ? 1 : 0));
+  let sim = true; for (let i = 0; i < m; i++) for (let j = 0; j < m; j++) if (M[i][j] !== M[j][i]) sim = false;
+  if (!sim && !dir()) { chkDir.checked = true; msg.textContent = 'Matriz não simétrica: ativei “Direcionado”.'; } else msg.textContent = 'Matriz aplicada.';
+  if (m !== n) pos = posCirculo(m).map(([x, y]) => ({ x, y }));
+  n = m; if (s >= n) s = 0; document.getElementById('mx')._prev = null; reiniciar();
+};
+/* arrastar vértices */
+let arr = null;
+svg.addEventListener('pointerdown', e => { const g = e.target.closest('[data-node]'); if (!g) return; arr = +g.dataset.node; svg.setPointerCapture(e.pointerId); });
+svg.addEventListener('pointermove', e => { if (arr === null) return; const p = pontoSvg(svg, e);
+  pos[arr].x = Math.max(24, Math.min(616, p.x)); pos[arr].y = Math.max(24, Math.min(416, p.y)); render(); });
+svg.addEventListener('pointerup', () => arr = null);
+svg.addEventListener('dblclick', e => { const g = e.target.closest('[data-node]'); if (g) { s = +g.dataset.node; reiniciar(); } });
+
+carregar('aula');
+</script>
+</body>
+</html>

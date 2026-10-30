@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grafos interativos · Estruturas de Dados</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#2E2640; --red:#FF4545; --teal:#066D73; --teal-l:#BFE3E5; --gray:#F3F3F3;
+  --ink:#2E2640; --muted:#6B6780; --line:#DDDAE5; --edge:#8A869C; --bg:#FAFAFC; --card:#FFFFFF;
+  --red-l:#FFE3E3;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;font-size:15px}
+a{color:var(--teal)}
+code,kbd,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+kbd{background:#fff;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;font-size:12px}
+
+/* topo */
+header.top{background:var(--navy);color:#fff}
+header.top .wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:12px 20px;max-width:1440px;margin:0 auto}
+header.top .brand{font-weight:800;letter-spacing:.2px;text-decoration:none;color:#fff;display:flex;align-items:center;gap:10px}
+header.top .brand .dot{width:12px;height:12px;border-radius:50%;background:var(--red);box-shadow:0 0 0 3px rgba(255,255,255,.18)}
+header.top nav{display:flex;gap:4px;flex-wrap:wrap}
+header.top nav a{color:#D9D5E6;text-decoration:none;padding:6px 12px;border-radius:999px;font-size:14px;font-weight:500}
+header.top nav a:hover{background:rgba(255,255,255,.08);color:#fff}
+header.top nav a.on{background:#fff;color:var(--navy);font-weight:700}
+
+main{max-width:1440px;margin:0 auto;padding:20px}
+h1{font-size:26px;margin:4px 0 6px;letter-spacing:-.3px}
+h2{font-size:17px;margin:0 0 8px}
+h3{font-size:15px;margin:0 0 6px}
+.lead{color:var(--muted);margin:0 0 16px;max-width:900px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+/* barra de ferramentas */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.seg button{border:0;background:transparent;padding:8px 12px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--navy);color:#fff}
+.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--navy)}
+.btn.primary{background:var(--red);border-color:var(--red);color:#fff;font-weight:600}
+.btn:disabled{opacity:.4;cursor:default}
+select,input[type=number],input[type=text]{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:#fff;color:var(--ink)}
+label.chk{display:inline-flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 10px}
+.hint{font-size:13.5px;color:var(--muted);background:#fff;border:1px dashed var(--line);border-radius:10px;padding:7px 12px;flex:1;min-width:240px}
+.hint b{color:var(--red)}
+
+/* grafo svg */
+svg.graph{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:12px;touch-action:none;user-select:none;-webkit-user-select:none}
+svg.graph.m-vertice{cursor:copy}
+svg.graph.m-aresta{cursor:crosshair}
+svg.graph.m-apagar{cursor:not-allowed}
+.edge .hit{stroke:transparent;stroke-width:16;fill:none;cursor:pointer}
+.edge .line{stroke:var(--edge);stroke-width:2.4;fill:none;transition:stroke .15s}
+.edge.hl .line{stroke:var(--red);stroke-width:4}
+.edge.tree .line{stroke:var(--navy);stroke-width:5}
+.edge.back .line{stroke:var(--red);stroke-width:2.6;stroke-dasharray:8 5}
+.edge.fwd .line{stroke:var(--teal);stroke-width:2.4;stroke-dasharray:8 5}
+.edge.cross .line,.edge.seen .line{stroke:#B6B2C4;stroke-width:2.2;stroke-dasharray:4 5}
+.edge.exam .line{stroke:var(--red);stroke-width:5;stroke-dasharray:none}
+.edge.dim{opacity:.22}
+.node circle{fill:#fff;stroke:var(--navy);stroke-width:2.6;transition:fill .15s}
+.node{cursor:pointer}
+.node .nlabel{font-weight:700;font-size:15px;fill:var(--navy);pointer-events:none}
+.node .nsub{font-size:12px;font-weight:600;fill:var(--teal);pointer-events:none;paint-order:stroke;stroke:#fff;stroke-width:4px}
+.node.pending circle{stroke:var(--red);stroke-width:4;stroke-dasharray:5 3}
+.node.hl circle{stroke:var(--red);stroke-width:4.5}
+.node.open circle{fill:var(--teal-l);stroke:var(--teal)}
+.node.done circle{fill:var(--navy);stroke:var(--navy)}
+.node.done .nlabel{fill:#fff}
+.node.cur circle{fill:var(--red);stroke:var(--red)}
+.node.cur .nlabel{fill:#fff}
+.node.dim{opacity:.3}
+.pill rect{fill:#fff;stroke:var(--navy);stroke-width:1.4}
+.pill text{font-size:12.5px;font-weight:700;fill:var(--navy);pointer-events:none}
+.pill.editable{cursor:text}
+.pill.editable:hover rect{stroke:var(--red);stroke-width:2}
+.edge.hl .pill rect{stroke:var(--red);stroke-width:2}
+.etag{font-size:11.5px;fill:var(--muted);font-style:italic;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:4px;pointer-events:none}
+.edge.hl .etag{fill:var(--red)}
+
+/* matrizes */
+.mwrap{overflow:auto;max-width:100%}
+table.mx{border-collapse:separate;border-spacing:0;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px}
+table.mx th,table.mx td{min-width:34px;height:32px;text-align:center;padding:2px 6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+table.mx thead th{background:var(--navy);color:#fff;font-weight:700;position:sticky;top:0}
+table.mx thead th:first-child{border-top-left-radius:8px}
+table.mx thead th:last-child{border-top-right-radius:8px}
+table.mx th{white-space:nowrap}
+table.mx thead th small{display:block;font-size:10.5px;font-weight:500;color:#C9C4DA;line-height:1.1}
+table.mx tbody th{background:var(--navy);color:#fff;font-weight:700;position:sticky;left:0}
+table.mx td{background:#fff}
+table.mx td.zero,table.mx td.nul{color:#B4B0C2}
+table.mx td.pos{color:var(--navy);font-weight:700}
+table.mx td.neg{color:var(--teal);font-weight:700}
+table.mx td.diag{background:#F7F6FA}
+table.mx td.asym{background:var(--red-l)}
+table.mx td.edit{cursor:pointer}
+table.mx td.edit:hover{outline:2px solid var(--teal);outline-offset:-2px}
+table.mx td.hl,table.mx th.hl{background:#FFD0D0 !important;color:var(--navy)}
+table.mx th.hl{background:var(--red) !important;color:#fff}
+table.mx td.cross{background:#FFF0F0}
+table.mx td.scan{background:#E7F4F5}
+table.mx td.exam{background:var(--red) !important;color:#fff !important}
+table.mx td input{width:52px;font:inherit;text-align:center;border:2px solid var(--red);border-radius:6px;padding:2px}
+@keyframes flash{0%{background:#FF9A9A}100%{background:#fff}}
+table.mx td.flash{animation:flash 1.4s ease-out}
+
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--navy);background:#fff;display:inline-block}
+.ln{width:26px;height:0;border-top:3px solid var(--edge);display:inline-block}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.fact{background:var(--gray);border-radius:10px;padding:6px 10px;font-size:13.5px}
+.fact.ok{background:#E2F2F3;color:var(--teal)}
+.fact.warn{background:var(--red-l);color:#B32626}
+.note{font-size:13.5px;background:var(--gray);border-left:4px solid var(--teal);border-radius:8px;padding:10px 12px;margin-top:10px}
+.note.red{border-left-color:var(--red)}
+footer{max-width:1440px;margin:10px auto 30px;padding:0 20px;color:var(--muted);font-size:13px}
+.floatin{position:fixed;z-index:20;background:#fff;border:2px solid var(--red);border-radius:10px;padding:6px;box-shadow:0 8px 24px rgba(46,38,64,.2);display:flex;gap:6px;align-items:center;font-size:13px}
+.floatin input{width:80px}
+
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:28px;align-items:center;margin:16px 0 28px}
+@media (max-width:900px){.hero{grid-template-columns:1fr}}
+.hero h1{font-size:38px;line-height:1.1;margin:0 0 12px;letter-spacing:-.8px}
+.hero h1 em{font-style:normal;color:var(--red)}
+.hero p{font-size:17px;color:var(--muted);max-width:620px}
+.kicker{display:inline-block;font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--teal);margin-bottom:8px}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:1000px){.cards{grid-template-columns:1fr}}
+a.pg{display:flex;flex-direction:column;text-decoration:none;color:inherit;background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;transition:transform .15s,box-shadow .15s,border-color .15s}
+a.pg:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(46,38,64,.12);border-color:var(--navy)}
+a.pg .num{width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;margin-bottom:12px}
+a.pg h2{font-size:20px;margin:0 0 6px}
+a.pg p{color:var(--muted);margin:0 0 12px}
+a.pg ul{margin:0 0 14px;padding-left:18px;font-size:14px}
+a.pg ul li{margin:3px 0}
+a.pg .try{margin-top:auto;font-size:13.5px;background:var(--gray);border-radius:10px;padding:10px 12px}
+a.pg .try b{color:var(--red)}
+a.pg .go{margin-top:12px;font-weight:700;color:var(--red)}
+.why{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:28px 0}
+@media (max-width:900px){.why{grid-template-columns:1fr}}
+.why .card h3{display:flex;gap:8px;align-items:center}
+.why .card p{margin:0;color:var(--muted);font-size:14.5px}
+.ico{width:28px;height:28px;border-radius:8px;background:var(--red-l);color:var(--red);display:inline-flex;align-items:center;justify-content:center;font-weight:800}
+.road{margin:28px 0}
+.road ol{margin:8px 0 0;padding-left:20px}
+.road li{margin:6px 0}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap"><a class="brand" href="index.html"><span class="dot"></span>Grafos interativos</a><nav><a href="index.html" class="on">Início</a><a href="grafos-e-digrafos.html">Grafo × Dígrafo</a><a href="matrizes.html">Incidência e pesos</a><a href="busca-bfs-dfs.html">BFS e DFS</a></nav></div></header>
+<main>
+  <section class="hero">
+    <div>
+      <span class="kicker">Estruturas de Dados · Grafos</span>
+      <h1>Veja o grafo <em>e</em> a matriz mudarem juntos</h1>
+      <p>Um grafo é um desenho para nós, mas para o computador é uma tabela de números. Estas páginas ligam as duas visões:
+      cada vértice ou aresta que você cria aparece na hora na matriz e cada célula que você muda na matriz altera o desenho.</p>
+      <p>A ideia é <b>experimentar</b>: montar grafos, quebrar as regras (laços, arestas paralelas, arcos de mão única) e observar
+      o que acontece com as representações e com os algoritmos de busca.</p>
+    </div>
+    <svg viewBox="0 0 570 300" role="img" aria-label="Um grafo ao lado da sua matriz de adjacência">
+      <g stroke="#8A869C" stroke-width="2.4">
+        <line x1="70" y1="70" x2="200" y2="60"/><line x1="70" y1="70" x2="110" y2="220"/>
+        <line x1="200" y1="60" x2="230" y2="200"/><line x1="110" y1="220" x2="230" y2="200" stroke="#FF4545" stroke-width="4"/>
+      </g>
+      <g font-family="Inter,sans-serif" font-weight="700" font-size="15" text-anchor="middle">
+        <circle cx="70" cy="70" r="20" fill="#fff" stroke="#2E2640" stroke-width="2.6"/><text x="70" y="75" fill="#2E2640">A</text>
+        <circle cx="200" cy="60" r="20" fill="#fff" stroke="#2E2640" stroke-width="2.6"/><text x="200" y="65" fill="#2E2640">B</text>
+        <circle cx="110" cy="220" r="20" fill="#fff" stroke="#FF4545" stroke-width="4"/><text x="110" y="225" fill="#2E2640">C</text>
+        <circle cx="230" cy="200" r="20" fill="#fff" stroke="#FF4545" stroke-width="4"/><text x="230" y="205" fill="#2E2640">D</text>
+      </g>
+      <g font-family="JetBrains Mono,monospace" font-size="14" text-anchor="middle">
+        <rect x="300" y="40" width="200" height="40" rx="8" fill="#2E2640"/>
+        <text x="360" y="65" fill="#fff" font-weight="700">A</text><text x="400" y="65" fill="#fff" font-weight="700">B</text>
+        <text x="440" y="65" fill="#fff" font-weight="700">C</text><text x="480" y="65" fill="#fff" font-weight="700">D</text>
+        <rect x="300" y="80" width="40" height="160" fill="#2E2640"/>
+        <text x="320" y="105" fill="#fff" font-weight="700">A</text><text x="320" y="145" fill="#fff" font-weight="700">B</text>
+        <text x="320" y="185" fill="#fff" font-weight="700">C</text><text x="320" y="225" fill="#fff" font-weight="700">D</text>
+        <rect x="340" y="80" width="160" height="160" fill="#fff" stroke="#DDDAE5"/>
+        <rect x="460" y="160" width="40" height="40" fill="#FF9A9A" opacity=".7"/><rect x="420" y="200" width="40" height="40" fill="#FF9A9A" opacity=".7"/>
+        <g fill="#2E2640">
+          <text x="360" y="105" fill="#B4B0C2">0</text><text x="400" y="105">1</text><text x="440" y="105">1</text><text x="480" y="105" fill="#B4B0C2">0</text>
+          <text x="360" y="145">1</text><text x="400" y="145" fill="#B4B0C2">0</text><text x="440" y="145" fill="#B4B0C2">0</text><text x="480" y="145">1</text>
+          <text x="360" y="185">1</text><text x="400" y="185" fill="#B4B0C2">0</text><text x="440" y="185" fill="#B4B0C2">0</text><text x="480" y="185" font-weight="700">1</text>
+          <text x="360" y="225" fill="#B4B0C2">0</text><text x="400" y="225">1</text><text x="440" y="225" font-weight="700">1</text><text x="480" y="225" fill="#B4B0C2">0</text>
+        </g>
+      </g>
+      <text x="300" y="275" font-family="Inter,sans-serif" font-size="12.5" fill="#6B6780">nova aresta C–D → M[C][D] = M[D][C] = 1</text>
+    </svg>
+  </section>
+
+  <h2 style="font-size:22px;margin-bottom:12px">O que há em cada página</h2>
+  <div class="cards">
+    <a class="pg" href="grafos-e-digrafos.html">
+      <span class="num">1</span>
+      <h2>Grafo × Dígrafo</h2>
+      <p>O mesmo conjunto de ligações desenhado como grafo (arestas sem sentido) e como dígrafo (arcos com origem e destino), lado a lado.</p>
+      <ul>
+        <li>Matriz de adjacência simétrica × assimétrica</li>
+        <li>Grau d(v) × graus de saída d⁺ e de entrada d⁻</li>
+        <li>Sorvedouros, vertedouros, laços e arcos opostos</li>
+      </ul>
+      <div class="try"><b>Experimente:</b> no modo “Inverter arco”, clique em um arco. O que muda em cada matriz?</div>
+      <span class="go">Abrir →</span>
+    </a>
+    <a class="pg" href="matrizes.html">
+      <span class="num">2</span>
+      <h2>Incidência e pesos</h2>
+      <p>Um editor de grafos ponderados com as duas representações sempre visíveis e sincronizadas.</p>
+      <ul>
+        <li>Matriz de incidência n × m (1, −1, laço)</li>
+        <li>Matriz de pesos n × n, com — = NULO</li>
+        <li>Editar pelo desenho <i>ou</i> direto na matriz</li>
+      </ul>
+      <div class="try"><b>Experimente:</b> crie duas arestas entre os mesmos vértices. Qual matriz consegue guardar as duas?</div>
+      <span class="go">Abrir →</span>
+    </a>
+    <a class="pg" href="busca-bfs-dfs.html">
+      <span class="num">3</span>
+      <h2>BFS e DFS</h2>
+      <p>Edite a matriz de adjacência e execute as buscas em largura e em profundidade passo a passo.</p>
+      <ul>
+        <li>Fila (BFS) e pilha de chamadas (DFS) animadas</li>
+        <li>Pseudocódigo com a linha atual destacada</li>
+        <li>dist/pai, tempos d/f e detecção de ciclos</li>
+      </ul>
+      <div class="try"><b>Experimente:</b> rode a BFS e a DFS a partir do mesmo vértice. As ordens de visita são iguais? Por quê?</div>
+      <span class="go">Abrir →</span>
+    </a>
+  </div>
+
+  <div class="why">
+    <div class="card"><h3><span class="ico">?</span> Por que este projeto</h3>
+      <p>Grafos modelam redes de ruas, energia, computadores e dependências. Entender um algoritmo de grafos exige enxergar a estrutura de dados que está por trás dele — e é aí que a matriz entra.</p></div>
+    <div class="card"><h3><span class="ico">↔</span> Duas visões, um objeto</h3>
+      <p>Passe o mouse sobre um vértice, uma aresta ou uma célula: o elemento correspondente é destacado na outra representação. Células alteradas piscam em vermelho.</p></div>
+    <div class="card"><h3><span class="ico">▶</span> Aprender mexendo</h3>
+      <p>Tudo é editável: não há resposta certa para “montar o grafo”. Use os exemplos como ponto de partida e tente prever o resultado antes de clicar.</p></div>
+  </div>
+
+  <section class="card road">
+    <h2>Roteiro sugerido</h2>
+    <ol>
+      <li><b>Grafo × Dígrafo:</b> carregue “Ruas de mão única”, identifique sorvedouros e vertedouros e confirme que Σd⁺ = Σd⁻ = |A|.</li>
+      <li><b>Incidência e pesos:</b> monte uma rede com 5 vértices, depois apague uma aresta e observe a coluna desaparecer da incidência e a célula virar NULO na matriz de pesos.</li>
+      <li><b>BFS e DFS:</b> carregue “Três componentes”, rode a BFS com e sem “Visitar todas as componentes” e conte quantas buscas foram necessárias.</li>
+      <li><b>Desafio:</b> no “Dígrafo com ciclo”, mude <i>uma</i> célula da matriz para que a DFS deixe de encontrar o ciclo.</li>
+    </ol>
+    <p class="small muted" style="margin-bottom:0">Atalhos nos editores: <kbd>V</kbd> vértice, <kbd>A</kbd> aresta, <kbd>X</kbd> apagar, <kbd>Esc</kbd> cancelar. Na página de buscas: <kbd>←</kbd> <kbd>→</kbd> passos e <kbd>espaço</kbd> reproduzir.</p>
+  </section>
+</main>
+<footer>Estruturas de Dados · Inteli — material de apoio às aulas de grafos. Cada página é um único arquivo HTML: funciona aberta direto no navegador.</footer>
+</body>
+</html>

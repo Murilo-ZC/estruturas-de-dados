@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Incidência e pesos · Grafos interativos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#2E2640; --red:#FF4545; --teal:#066D73; --teal-l:#BFE3E5; --gray:#F3F3F3;
+  --ink:#2E2640; --muted:#6B6780; --line:#DDDAE5; --edge:#8A869C; --bg:#FAFAFC; --card:#FFFFFF;
+  --red-l:#FFE3E3;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;font-size:15px}
+a{color:var(--teal)}
+code,kbd,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+kbd{background:#fff;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;font-size:12px}
+
+/* topo */
+header.top{background:var(--navy);color:#fff}
+header.top .wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:12px 20px;max-width:1440px;margin:0 auto}
+header.top .brand{font-weight:800;letter-spacing:.2px;text-decoration:none;color:#fff;display:flex;align-items:center;gap:10px}
+header.top .brand .dot{width:12px;height:12px;border-radius:50%;background:var(--red);box-shadow:0 0 0 3px rgba(255,255,255,.18)}
+header.top nav{display:flex;gap:4px;flex-wrap:wrap}
+header.top nav a{color:#D9D5E6;text-decoration:none;padding:6px 12px;border-radius:999px;font-size:14px;font-weight:500}
+header.top nav a:hover{background:rgba(255,255,255,.08);color:#fff}
+header.top nav a.on{background:#fff;color:var(--navy);font-weight:700}
+
+main{max-width:1440px;margin:0 auto;padding:20px}
+h1{font-size:26px;margin:4px 0 6px;letter-spacing:-.3px}
+h2{font-size:17px;margin:0 0 8px}
+h3{font-size:15px;margin:0 0 6px}
+.lead{color:var(--muted);margin:0 0 16px;max-width:900px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+/* barra de ferramentas */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.seg button{border:0;background:transparent;padding:8px 12px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--navy);color:#fff}
+.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font:inherit;font-size:14px;color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--navy)}
+.btn.primary{background:var(--red);border-color:var(--red);color:#fff;font-weight:600}
+.btn:disabled{opacity:.4;cursor:default}
+select,input[type=number],input[type=text]{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:#fff;color:var(--ink)}
+label.chk{display:inline-flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 10px}
+.hint{font-size:13.5px;color:var(--muted);background:#fff;border:1px dashed var(--line);border-radius:10px;padding:7px 12px;flex:1;min-width:240px}
+.hint b{color:var(--red)}
+
+/* grafo svg */
+svg.graph{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:12px;touch-action:none;user-select:none;-webkit-user-select:none}
+svg.graph.m-vertice{cursor:copy}
+svg.graph.m-aresta{cursor:crosshair}
+svg.graph.m-apagar{cursor:not-allowed}
+.edge .hit{stroke:transparent;stroke-width:16;fill:none;cursor:pointer}
+.edge .line{stroke:var(--edge);stroke-width:2.4;fill:none;transition:stroke .15s}
+.edge.hl .line{stroke:var(--red);stroke-width:4}
+.edge.tree .line{stroke:var(--navy);stroke-width:5}
+.edge.back .line{stroke:var(--red);stroke-width:2.6;stroke-dasharray:8 5}
+.edge.fwd .line{stroke:var(--teal);stroke-width:2.4;stroke-dasharray:8 5}
+.edge.cross .line,.edge.seen .line{stroke:#B6B2C4;stroke-width:2.2;stroke-dasharray:4 5}
+.edge.exam .line{stroke:var(--red);stroke-width:5;stroke-dasharray:none}
+.edge.dim{opacity:.22}
+.node circle{fill:#fff;stroke:var(--navy);stroke-width:2.6;transition:fill .15s}
+.node{cursor:pointer}
+.node .nlabel{font-weight:700;font-size:15px;fill:var(--navy);pointer-events:none}
+.node .nsub{font-size:12px;font-weight:600;fill:var(--teal);pointer-events:none;paint-order:stroke;stroke:#fff;stroke-width:4px}
+.node.pending circle{stroke:var(--red);stroke-width:4;stroke-dasharray:5 3}
+.node.hl circle{stroke:var(--red);stroke-width:4.5}
+.node.open circle{fill:var(--teal-l);stroke:var(--teal)}
+.node.done circle{fill:var(--navy);stroke:var(--navy)}
+.node.done .nlabel{fill:#fff}
+.node.cur circle{fill:var(--red);stroke:var(--red)}
+.node.cur .nlabel{fill:#fff}
+.node.dim{opacity:.3}
+.pill rect{fill:#fff;stroke:var(--navy);stroke-width:1.4}
+.pill text{font-size:12.5px;font-weight:700;fill:var(--navy);pointer-events:none}
+.pill.editable{cursor:text}
+.pill.editable:hover rect{stroke:var(--red);stroke-width:2}
+.edge.hl .pill rect{stroke:var(--red);stroke-width:2}
+.etag{font-size:11.5px;fill:var(--muted);font-style:italic;font-weight:600;paint-order:stroke;stroke:#fff;stroke-width:4px;pointer-events:none}
+.edge.hl .etag{fill:var(--red)}
+
+/* matrizes */
+.mwrap{overflow:auto;max-width:100%}
+table.mx{border-collapse:separate;border-spacing:0;font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:13.5px}
+table.mx th,table.mx td{min-width:34px;height:32px;text-align:center;padding:2px 6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+table.mx thead th{background:var(--navy);color:#fff;font-weight:700;position:sticky;top:0}
+table.mx thead th:first-child{border-top-left-radius:8px}
+table.mx thead th:last-child{border-top-right-radius:8px}
+table.mx th{white-space:nowrap}
+table.mx thead th small{display:block;font-size:10.5px;font-weight:500;color:#C9C4DA;line-height:1.1}
+table.mx tbody th{background:var(--navy);color:#fff;font-weight:700;position:sticky;left:0}
+table.mx td{background:#fff}
+table.mx td.zero,table.mx td.nul{color:#B4B0C2}
+table.mx td.pos{color:var(--navy);font-weight:700}
+table.mx td.neg{color:var(--teal);font-weight:700}
+table.mx td.diag{background:#F7F6FA}
+table.mx td.asym{background:var(--red-l)}
+table.mx td.edit{cursor:pointer}
+table.mx td.edit:hover{outline:2px solid var(--teal);outline-offset:-2px}
+table.mx td.hl,table.mx th.hl{background:#FFD0D0 !important;color:var(--navy)}
+table.mx th.hl{background:var(--red) !important;color:#fff}
+table.mx td.cross{background:#FFF0F0}
+table.mx td.scan{background:#E7F4F5}
+table.mx td.exam{background:var(--red) !important;color:#fff !important}
+table.mx td input{width:52px;font:inherit;text-align:center;border:2px solid var(--red);border-radius:6px;padding:2px}
+@keyframes flash{0%{background:#FF9A9A}100%{background:#fff}}
+table.mx td.flash{animation:flash 1.4s ease-out}
+
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:16px;height:16px;border-radius:50%;border:2.5px solid var(--navy);background:#fff;display:inline-block}
+.ln{width:26px;height:0;border-top:3px solid var(--edge);display:inline-block}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.fact{background:var(--gray);border-radius:10px;padding:6px 10px;font-size:13.5px}
+.fact.ok{background:#E2F2F3;color:var(--teal)}
+.fact.warn{background:var(--red-l);color:#B32626}
+.note{font-size:13.5px;background:var(--gray);border-left:4px solid var(--teal);border-radius:8px;padding:10px 12px;margin-top:10px}
+.note.red{border-left-color:var(--red)}
+footer{max-width:1440px;margin:10px auto 30px;padding:0 20px;color:var(--muted);font-size:13px}
+.floatin{position:fixed;z-index:20;background:#fff;border:2px solid var(--red);border-radius:10px;padding:6px;box-shadow:0 8px 24px rgba(46,38,64,.2);display:flex;gap:6px;align-items:center;font-size:13px}
+.floatin input{width:80px}
+
+.layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1050px){.layout{grid-template-columns:1fr}}
+.stack{display:flex;flex-direction:column;gap:16px}
+.card h2 small{font-weight:500;color:var(--muted);font-size:13px;margin-left:6px}
+.howto{font-size:13.5px;color:var(--muted);margin:8px 0 0}
+.howto b{color:var(--ink)}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap"><a class="brand" href="index.html"><span class="dot"></span>Grafos interativos</a><nav><a href="index.html">Início</a><a href="grafos-e-digrafos.html">Grafo × Dígrafo</a><a href="matrizes.html" class="on">Incidência e pesos</a><a href="busca-bfs-dfs.html">BFS e DFS</a></nav></div></header>
+<main>
+  <h1>Matriz de incidência e matriz de pesos</h1>
+  <p class="lead">Monte um grafo e acompanhe como cada ação aparece nas duas representações. As células que mudam piscam em vermelho.
+  Passe o mouse sobre uma célula, um vértice ou uma aresta para ver a correspondência entre o desenho e as matrizes.</p>
+
+  <div class="toolbar" id="toolbar">
+    <label class="chk"><input type="checkbox" id="dir"> Direcionado</label>
+    <label class="chk"><input type="checkbox" id="pond" checked> Ponderado</label>
+    <select id="preset">
+      <option value="">Carregar exemplo…</option>
+      <option value="rede">Rede ponderada</option>
+      <option value="digrafo">Dígrafo ponderado</option>
+      <option value="multi">Laço e arestas paralelas</option>
+      <option value="tri">Triângulo</option>
+    </select>
+    <button class="btn" id="limpar" type="button">Limpar</button>
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <div class="layout">
+    <section class="card">
+      <svg id="svgM" class="graph" viewBox="0 0 640 470"></svg>
+      <div class="facts" id="facts"></div>
+      <div class="legend">
+        <span><span class="sw"></span> vértice</span>
+        <span><svg width="44" height="22"><rect x="10" y="2" width="26" height="18" rx="9" fill="#fff" stroke="#2E2640"/><text x="23" y="15" font-size="11" text-anchor="middle" font-weight="700" fill="#2E2640">5</text></svg> peso (clique para editar)</span>
+        <span><i class="etag" style="font-style:italic">e1</i> nome da aresta = coluna da incidência</span>
+      </div>
+    </section>
+
+    <div class="stack">
+      <section class="card">
+        <h2>Matriz de incidência <small id="incDim"></small></h2>
+        <div class="mwrap"><table class="mx" id="mxI"></table></div>
+        <p class="howto" id="incHow"></p>
+      </section>
+      <section class="card">
+        <h2 id="wTitle">Matriz de pesos <small id="wDim"></small></h2>
+        <div class="mwrap"><table class="mx" id="mxW"></table></div>
+        <p class="howto" id="wHow"></p>
+      </section>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Comparando as duas.</b> A matriz de incidência tem uma coluna por aresta (n × m) e por isso representa <b>tudo</b>: laços, arestas paralelas e, no dígrafo, o sentido (+1 sai, −1 entra).
+    A matriz de pesos/adjacência tem tamanho fixo n × n e responde rápido “existe ligação entre i e j? quanto custa?”, mas guarda <b>um único valor por par</b>.
+    Crie duas arestas entre os mesmos vértices e veja a diferença aparecer.
+  </div>
+</main>
+<footer>Estruturas de Dados · Inteli — material de apoio às aulas de grafos. Cada página é um único arquivo HTML: funciona aberta direto no navegador.</footer>
+<script>
+/* ===== Biblioteca comum: desenho de grafos em SVG e tabelas de matrizes ===== */
+const NS = 'http://www.w3.org/2000/svg';
+const RAIO = 20;
+const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+function svgEl(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  if (attrs) for (const k in attrs) {
+    if (k === 'class') e.className = attrs[k];
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  }
+  for (const c of kids) { if (c == null) continue; e.append(c.nodeType ? c : String(c)); }
+  return e;
+}
+function proximoNome(usados) {
+  for (const L of LETRAS) if (!usados.has(L)) return L;
+  let i = 1; while (usados.has('V' + i)) i++; return 'V' + i;
+}
+function proximoNumero(usados) { let i = 1; while (usados.has(i)) i++; return i; }
+function fmtNum(x) { return Number.isInteger(x) ? String(x) : String(+x.toFixed(2)); }
+
+function emDirecao(p, x, y, d) {
+  const dx = x - p.x, dy = y - p.y, L = Math.hypot(dx, dy);
+  if (L < 1e-6) return { x: p.x, y: p.y };
+  return { x: p.x + dx / L * d, y: p.y + dy / L * d };
+}
+
+/* Geometria das arestas: curva arestas paralelas/antiparalelas e desenha laços. */
+function geometriaArestas(porId, arestas, dirigido) {
+  const pares = new Map(), lacos = new Map(), out = {};
+  for (const e of arestas) {
+    if (e.u === e.v) { if (!lacos.has(e.u)) lacos.set(e.u, []); lacos.get(e.u).push(e); }
+    else {
+      const k = Math.min(e.u, e.v) + '|' + Math.max(e.u, e.v);
+      if (!pares.has(k)) pares.set(k, []); pares.get(k).push(e);
+    }
+  }
+  for (const lista of pares.values()) {
+    const m = lista.length;
+    lista.forEach((e, i) => {
+      const a = porId[e.u], b = porId[e.v];
+      const lo = e.u < e.v ? a : b, hi = e.u < e.v ? b : a;
+      const dx = hi.x - lo.x, dy = hi.y - lo.y, L = Math.hypot(dx, dy) || 1;
+      const nx = -dy / L, ny = dx / L;
+      const off = (i - (m - 1) / 2) * 38;
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      const cx = mx + nx * off * 2, cy = my + ny * off * 2;
+      const s = emDirecao(a, cx, cy, RAIO + 1), t = emDirecao(b, cx, cy, RAIO + (dirigido ? 3 : 1));
+      out[e.id] = { d: `M${s.x},${s.y} Q${cx},${cy} ${t.x},${t.y}`, lx: mx + nx * off, ly: my + ny * off };
+    });
+  }
+  for (const [nid, lista] of lacos) {
+    const n = porId[nid];
+    lista.forEach((e, i) => {
+      const s = 34 + i * 18, x = n.x, y = n.y;
+      out[e.id] = {
+        d: `M${x - 10},${y - RAIO + 3} C${x - s},${y - RAIO - s * 1.5} ${x + s},${y - RAIO - s * 1.5} ${x + 10},${y - RAIO + 3}`,
+        lx: x, ly: y - RAIO + 1 - s * 1.125
+      };
+    });
+  }
+  return out;
+}
+
+const MARCADORES = { def: '#8A869C', red: '#FF4545', navy: '#2E2640', teal: '#066D73', gray: '#B6B2C4' };
+function marcadorPara(cls) {
+  cls = cls || '';
+  if (/\b(hl|back|exam)\b/.test(cls)) return 'red';
+  if (/\btree\b/.test(cls)) return 'navy';
+  if (/\bfwd\b/.test(cls)) return 'teal';
+  if (/\b(cross|seen)\b/.test(cls)) return 'gray';
+  return 'def';
+}
+
+/* g = { nodes:[{id,x,y,name,cls,sub}], edges:[{id,u,v,cls,label,tag}], directed, editableWeights } */
+function desenharGrafo(svg, g) {
+  const pre = svg.id || 'g';
+  svg.textContent = '';
+  const defs = svgEl('defs', null, svg);
+  for (const k in MARCADORES) {
+    const m = svgEl('marker', { id: `${pre}-m-${k}`, viewBox: '0 0 10 10', refX: 9, refY: 5,
+      markerWidth: 12, markerHeight: 12, markerUnits: 'userSpaceOnUse', orient: 'auto' }, defs);
+    svgEl('path', { d: 'M0,0 L10,5 L0,10 z', fill: MARCADORES[k] }, m);
+  }
+  const porId = {}; g.nodes.forEach(n => porId[n.id] = n);
+  const geo = geometriaArestas(porId, g.edges, g.directed);
+  const gE = svgEl('g', null, svg), gN = svgEl('g', null, svg);
+  for (const e of g.edges) {
+    const G = geo[e.id];
+    const grp = svgEl('g', { class: 'edge ' + (e.cls || ''), 'data-edge': e.id }, gE);
+    svgEl('path', { d: G.d, class: 'hit' }, grp);
+    const p = svgEl('path', { d: G.d, class: 'line' }, grp);
+    if (g.directed) p.setAttribute('marker-end', `url(#${pre}-m-${marcadorPara(e.cls)})`);
+    const temPilula = e.label != null && e.label !== '';
+    if (temPilula) {
+      const txt = String(e.label), w = Math.max(30, 16 + txt.length * 7.6);
+      const pg = svgEl('g', { class: 'pill' + (g.editableWeights ? ' editable' : ''), transform: `translate(${G.lx},${G.ly})` }, grp);
+      if (g.editableWeights) pg.setAttribute('data-weight', e.id);
+      svgEl('rect', { x: -w / 2, y: -10, width: w, height: 20, rx: 6 }, pg);
+      const t = svgEl('text', { 'text-anchor': 'middle', 'dominant-baseline': 'central', y: 1 }, pg); t.textContent = txt;
+    }
+    if (e.tag) {
+      const t = svgEl('text', { class: 'etag', x: G.lx, y: temPilula ? G.ly - 17 : G.ly + 4, 'text-anchor': 'middle' }, grp);
+      t.textContent = e.tag;
+    }
+  }
+  for (const n of g.nodes) {
+    const grp = svgEl('g', { class: 'node ' + (n.cls || ''), 'data-node': n.id, transform: `translate(${n.x},${n.y})` }, gN);
+    svgEl('circle', { r: RAIO }, grp);
+    const t = svgEl('text', { class: 'nlabel', 'text-anchor': 'middle', 'dominant-baseline': 'central', y: 1 }, grp);
+    t.textContent = n.name;
+    if (n.sub) { const s = svgEl('text', { class: 'nsub', 'text-anchor': 'middle', y: RAIO + 16 }, grp); s.textContent = n.sub; }
+  }
+}
+
+function pontoSvg(svg, evt) {
+  const p = svg.createSVGPoint(); p.x = evt.clientX; p.y = evt.clientY;
+  return p.matrixTransform(svg.getScreenCTM().inverse());
+}
+
+/* Interação de edição comum. ctx: getMode, addNode(x,y), addEdge(u,v), deleteNode(id), deleteEdge(id),
+   edgeClick(id, evt)?, weightClick(id, evt)?, moved(), setPending(id|null), hover(obj|null) */
+function ligarEditor(svg, ctx) {
+  let pendente = null, arrasto = null;
+  svg.addEventListener('pointerdown', evt => {
+    if (evt.button !== 0) return;
+    const alvo = evt.target.closest('[data-weight],[data-node],[data-edge]');
+    const modo = ctx.getMode();
+    const p = pontoSvg(svg, evt);
+    if (alvo && alvo.dataset.weight !== undefined && modo !== 'apagar') { evt.preventDefault(); ctx.weightClick && ctx.weightClick(+alvo.dataset.weight, evt); return; }
+    if (alvo && alvo.dataset.node !== undefined) {
+      const id = +alvo.dataset.node;
+      if (modo === 'apagar') { ctx.deleteNode(id); return; }
+      if (modo === 'aresta') {
+        if (pendente === null) pendente = id;
+        else { const u = pendente; pendente = null; ctx.setPending(null); ctx.addEdge(u, id); return; }
+        ctx.setPending(pendente); return;
+      }
+      arrasto = { id, dx: 0, dy: 0 };
+      const n = ctx.node(id); arrasto.dx = n.x - p.x; arrasto.dy = n.y - p.y;
+      svg.setPointerCapture(evt.pointerId); return;
+    }
+    if (alvo && alvo.dataset.edge !== undefined) {
+      const id = +alvo.dataset.edge;
+      if (modo === 'apagar') { ctx.deleteEdge(id); return; }
+      ctx.edgeClick && ctx.edgeClick(id, evt); return;
+    }
+    if (modo === 'vertice') ctx.addNode(p.x, p.y);
+    else if (modo === 'aresta' && pendente !== null) { pendente = null; ctx.setPending(null); }
+  });
+  svg.addEventListener('pointermove', evt => {
+    if (arrasto) {
+      const p = pontoSvg(svg, evt), vb = svg.viewBox.baseVal, n = ctx.node(arrasto.id);
+      n.x = Math.max(RAIO + 4, Math.min(vb.width - RAIO - 4, p.x + arrasto.dx));
+      n.y = Math.max(RAIO + 4, Math.min(vb.height - RAIO - 4, p.y + arrasto.dy));
+      ctx.moved(); return;
+    }
+    if (!ctx.hover) return;
+    const alvo = evt.target.closest('[data-node],[data-edge]');
+    if (!alvo) ctx.hover(null);
+    else if (alvo.dataset.node !== undefined) ctx.hover({ type: 'node', id: +alvo.dataset.node });
+    else ctx.hover({ type: 'edge', id: +alvo.dataset.edge });
+  });
+  const fim = () => { arrasto = null; };
+  svg.addEventListener('pointerup', fim);
+  svg.addEventListener('pointercancel', fim);
+  svg.addEventListener('pointerleave', () => { if (!arrasto && ctx.hover) ctx.hover(null); });
+  return { cancelar() { pendente = null; ctx.setPending(null); }, get pendente() { return pendente; } };
+}
+
+/* Tabela de matriz. spec: corner, rows:[{key,label}], cols:[{key,label,sub}], cell(r,c)->{text,cls,title} */
+function desenharMatriz(table, spec) {
+  const ant = table._prev || null, agora = new Map();
+  table.textContent = '';
+  const thead = h('thead'), tr = h('tr');
+  tr.append(h('th', { class: 'corner' }, spec.corner || ''));
+  for (const c of spec.cols) {
+    const th = h('th', null, c.label); for (const sb of [].concat(c.sub || [])) th.append(h('small', null, sb));
+    th.dataset.col = c.key; if (c.title) th.title = c.title; tr.append(th);
+  }
+  thead.append(tr); table.append(thead);
+  const tb = h('tbody');
+  for (const r of spec.rows) {
+    const row = h('tr'), th = h('th', null, r.label); th.dataset.row = r.key; row.append(th);
+    for (const c of spec.cols) {
+      const v = spec.cell(r, c), td = h('td', { class: v.cls || '' }, v.text);
+      if (v.title) td.title = v.title;
+      td.dataset.row = r.key; td.dataset.col = c.key;
+      const k = r.key + '|' + c.key; agora.set(k, v.text);
+      if (ant && !spec.semFlash && ant.get(k) !== v.text) td.classList.add('flash');
+      row.append(td);
+    }
+    tb.append(row);
+  }
+  table.append(tb);
+  table._prev = agora;
+}
+/* Destaca células/cabeçalhos: pred(row,col) -> classe ou null */
+function marcarMatriz(table, fn) {
+  table.querySelectorAll('td,th').forEach(c => {
+    c.classList.remove('hl', 'cross', 'scan', 'exam');
+    const cls = fn(c.dataset.row, c.dataset.col, c.tagName);
+    if (cls) cls.split(' ').forEach(x => c.classList.add(x));
+  });
+}
+
+/* Campo flutuante para digitar um valor */
+function pedirValor(x, y, inicial, rotulo, aoConfirmar) {
+  document.querySelectorAll('.floatin').forEach(e => e.remove());
+  const inp = h('input', { type: 'text', value: inicial ?? '' });
+  const box = h('div', { class: 'floatin' }, rotulo, inp, h('span', { class: 'muted' }, '↵'));
+  box.style.left = Math.min(window.innerWidth - 200, x + 8) + 'px';
+  box.style.top = Math.min(window.innerHeight - 60, y + 8) + 'px';
+  document.body.append(box);
+  inp.focus(); inp.select();
+  let feito = false;
+  const fechar = ok => { if (feito) return; feito = true; box.remove(); if (ok) aoConfirmar(inp.value.trim()); };
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') fechar(true); if (e.key === 'Escape') fechar(false); e.stopPropagation(); });
+  inp.addEventListener('blur', () => setTimeout(() => fechar(true), 80));
+}
+
+/* Barra de modos */
+function barraModos(cont, modos, inicial, aoMudar) {
+  const seg = h('div', { class: 'seg' });
+  const btns = {};
+  for (const [k, txt, tecla] of modos) {
+    const b = h('button', { type: 'button', title: `Atalho: ${tecla}` }, txt);
+    b.addEventListener('click', () => set(k));
+    btns[k] = b; seg.append(b);
+  }
+  function set(k) { for (const x in btns) btns[x].classList.toggle('on', x === k); aoMudar(k); }
+  cont.prepend(seg);
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input,textarea,select')) return;
+    for (const [k, , tecla] of modos) if (e.key.toLowerCase() === tecla.toLowerCase()) set(k);
+  });
+  set(inicial);
+  return set;
+}
+
+
+const svg = document.getElementById('svgM');
+const chkDir = document.getElementById('dir'), chkPond = document.getElementById('pond');
+let nodes = [], edges = [], modo = 'vertice', pendente = null, hover = null;
+
+const PRESETS = {
+  rede: { dir: false, pond: true, n: [['A',100,120],['B',320,70],['C',540,130],['D',180,360],['E',440,370]],
+    e: [['A','B',4],['A','D',2],['B','C',6],['B','D',5],['B','E',3],['C','E',1],['D','E',7]] },
+  digrafo: { dir: true, pond: true, n: [['A',100,230],['B',280,90],['C',280,370],['D',480,90],['E',560,300]],
+    e: [['A','B',3],['A','C',8],['B','C',2],['B','D',5],['C','E',4],['D','E',1],['E','B',6]] },
+  multi: { dir: true, pond: true, n: [['A',140,300],['B',320,150],['C',500,300]],
+    e: [['A','B',2],['A','B',7],['B','B',1],['B','C',4],['C','A',3]] },
+  tri: { dir: false, pond: false, n: [['A',320,90],['B',150,370],['C',490,370]],
+    e: [['A','B',1],['B','C',1],['C','A',1]] },
+};
+function carregar(nome) {
+  const p = PRESETS[nome]; if (!p) return;
+  chkDir.checked = p.dir; chkPond.checked = p.pond;
+  nodes = p.n.map(([name, x, y], i) => ({ id: i, name, x, y }));
+  const idx = Object.fromEntries(nodes.map(n => [n.name, n.id]));
+  edges = p.e.map(([u, v, w], i) => ({ id: i, num: i + 1, u: idx[u], v: idx[v], w }));
+  hover = null; pendente = null;
+  document.getElementById('mxI')._prev = null; document.getElementById('mxW')._prev = null;
+  tudo();
+}
+const novoId = l => l.reduce((m, x) => Math.max(m, x.id), -1) + 1;
+const nodeById = id => nodes.find(n => n.id === id);
+const edgeById = id => edges.find(e => e.id === id);
+const ordN = () => [...nodes].sort((a, b) => a.name.localeCompare(b.name, 'pt', { numeric: true }));
+const ordE = () => [...edges].sort((a, b) => a.num - b.num);
+const dir = () => chkDir.checked, pond = () => chkPond.checked;
+const seta = e => nodeById(e.u).name + (dir() ? '→' : '–') + nodeById(e.v).name;
+function arestasDoPar(r, c) {
+  return ordE().filter(e => (e.u === r && e.v === c) || (!dir() && e.u === c && e.v === r));
+}
+function adicionarAresta(u, v, w) {
+  const e = { id: novoId(edges), num: proximoNumero(new Set(edges.map(x => x.num))), u, v, w: w ?? 1 };
+  edges.push(e); return e;
+}
+
+/* ---- destaque ---- */
+function edgeHl(e) {
+  if (!hover) return false;
+  if (hover.type === 'edge') return e.id === hover.id;
+  if (hover.type === 'node') return e.u === hover.id || e.v === hover.id;
+  if (hover.type === 'inc') return e.id === hover.edge;
+  if (hover.type === 'pair') return arestasDoPar(hover.u, hover.v).includes(e);
+  return false;
+}
+function nodeHl(n) {
+  if (!hover) return false;
+  if (hover.type === 'node') return n.id === hover.id;
+  if (hover.type === 'inc') return n.id === hover.node;
+  if (hover.type === 'pair') return n.id === hover.u || n.id === hover.v;
+  if (hover.type === 'edge') { const e = edgeById(hover.id); return e && (e.u === n.id || e.v === n.id); }
+  return false;
+}
+
+/* ---- desenho ---- */
+function desenharVista() {
+  desenharGrafo(svg, {
+    directed: dir(), editableWeights: pond(),
+    nodes: nodes.map(n => ({ ...n, cls: (n.id === pendente ? 'pending ' : '') + (nodeHl(n) ? 'hl' : '') })),
+    edges: edges.map(e => ({ ...e, cls: edgeHl(e) ? 'hl' : '', label: pond() ? fmtNum(e.w) : null, tag: 'e' + e.num })),
+  });
+  svg.className.baseVal = 'graph m-' + modo;
+}
+function desenharTabelas() {
+  const N = ordN(), E = ordE(), D = dir(), P = pond();
+  const rows = N.map(n => ({ key: n.id, label: n.name }));
+  // incidência
+  desenharMatriz(document.getElementById('mxI'), {
+    corner: 'v\\e', rows,
+    cols: E.map(e => ({ key: e.id, label: 'e' + e.num, sub: P ? [seta(e), 'w = ' + fmtNum(e.w)] : seta(e) })),
+    cell(r, c) {
+      const e = edgeById(c.key), v = r.key;
+      if (e.u === e.v) return e.u === v ? (D ? { text: '±1', cls: 'pos', title: 'laço: sai e entra no mesmo vértice' } : { text: '2', cls: 'pos', title: 'laço: incide duas vezes' }) : { text: '0', cls: 'zero' };
+      if (e.u === v) return { text: '1', cls: 'pos', title: D ? `e${e.num} sai de ${r.label}` : '' };
+      if (e.v === v) return D ? { text: '−1', cls: 'neg', title: `e${e.num} entra em ${r.label}` } : { text: '1', cls: 'pos' };
+      return { text: '0', cls: 'zero' };
+    }
+  });
+  if (!E.length) document.getElementById('mxI').querySelector('thead tr').append(h('th', null, h('small', null, 'sem arestas')));
+  document.getElementById('incDim').textContent = `${N.length} × ${E.length}`;
+  document.getElementById('incHow').innerHTML = D
+    ? 'Linha = vértice, coluna = arco. <b>1</b>: o arco sai do vértice; <b>−1</b>: o arco entra no vértice; 0: não toca. Toda coluna tem exatamente um 1 e um −1 (laço: ±1).'
+    : 'Linha = vértice, coluna = aresta. <b>1</b>: a aresta incide no vértice; 0: não incide. Toda coluna tem exatamente dois 1 (laço: um 2).';
+
+  // pesos / adjacência
+  let paralelos = [];
+  desenharMatriz(document.getElementById('mxW'), {
+    corner: D ? 'de\\para' : '', rows, cols: rows,
+    cell(r, c) {
+      const L = arestasDoPar(r.key, c.key), diag = r.key === c.key ? ' diag' : '';
+      if (L.length > 1 && (D || r.key <= c.key)) paralelos.push(L.map(e => 'e' + e.num).join(', '));
+      if (P) {
+        if (!L.length) return { text: '—', cls: 'nul edit' + diag, title: 'NULO: não há aresta. Clique para criar.' };
+        const w = Math.min(...L.map(e => e.w));
+        return { text: fmtNum(w) + (L.length > 1 ? '*' : ''), cls: 'pos edit' + diag,
+          title: L.length > 1 ? `${L.length} arestas paralelas (${L.map(e => 'e' + e.num + '=' + fmtNum(e.w)).join(', ')}); mostrando o menor peso` : 'Clique para editar o peso (vazio apaga)' };
+      }
+      return { text: String(L.length), cls: (L.length ? 'pos' : 'zero') + ' edit' + diag, title: 'Clique para mudar o número de arestas' };
+    }
+  });
+  document.getElementById('wTitle').firstChild.textContent = P ? 'Matriz de pesos ' : 'Matriz de adjacência ';
+  document.getElementById('wDim').textContent = `${N.length} × ${N.length}`;
+  let how = P
+    ? `Célula [i][j] = peso ${D ? 'do arco de i para j' : 'da aresta entre i e j'}; <b>—</b> = NULO (sem ligação). ${D ? 'Linha = origem, coluna = destino.' : 'Simétrica, porque {i, j} = {j, i}.'} <b>Clique em uma célula</b> para criar, editar ou apagar (deixe vazio).`
+    : `Célula [i][j] = número de ${D ? 'arcos de i para j' : 'arestas entre i e j'}. ${D ? 'Linha = origem, coluna = destino.' : 'Simétrica.'} <b>Clique em uma célula</b> para alterar.`;
+  if (paralelos.length) how += `<br><span style="color:#B32626">* Arestas paralelas (${paralelos.join(' / ')}): a matriz n × n só guarda um valor por par${P ? ' — aqui, o menor peso' : ''}. A incidência mostra cada uma separadamente.</span>`;
+  document.getElementById('wHow').innerHTML = how;
+
+  // fatos
+  const n = N.length, m = E.length, fx = document.getElementById('facts');
+  const preench = n ? [...document.querySelectorAll('#mxW td')].filter(td => !td.classList.contains('nul') && !td.classList.contains('zero')).length : 0;
+  fx.innerHTML = '';
+  fx.append(h('span', { class: 'fact' }, `n = |V| = ${n}`), h('span', { class: 'fact' }, `m = |A| = ${m}`),
+    h('span', { class: 'fact' }, `incidência: ${n}×${m} = ${n * m} células`),
+    h('span', { class: 'fact' }, `${P ? 'pesos' : 'adjacência'}: ${n}×${n} = ${n * n} células, ${preench} preenchidas`));
+  if (P && m) fx.append(h('span', { class: 'fact ok' }, `custo total: ${fmtNum(E.reduce((s, e) => s + e.w, 0))}`));
+  marcarTabelas();
+}
+function marcarTabelas() {
+  marcarMatriz(document.getElementById('mxI'), (r, c, tag) => {
+    if (!hover) return null;
+    r = r === undefined ? null : +r; c = c === undefined ? null : +c;
+    const eh = c !== null && edgeHl(edgeById(c) || {}), nh = r !== null && nodeHl(nodeById(r) || {});
+    if (tag === 'TH') return (r !== null && nh && hover.type !== 'pair' && hover.type !== 'edge') || (c !== null && eh) ? 'hl' : null;
+    if (eh && nh) return 'hl';
+    if (eh || (hover.type === 'node' && nh)) return 'cross';
+    return null;
+  });
+  marcarMatriz(document.getElementById('mxW'), (r, c, tag) => {
+    if (!hover) return null;
+    r = r === undefined ? null : +r; c = c === undefined ? null : +c;
+    let pares = [];
+    if (hover.type === 'pair') pares = [[hover.u, hover.v]];
+    if (hover.type === 'edge' || hover.type === 'inc') { const e = edgeById(hover.type === 'edge' ? hover.id : hover.edge); if (e) pares = [[e.u, e.v]]; }
+    if (!dir()) pares = pares.concat(pares.map(([a, b]) => [b, a]));
+    if (tag === 'TD' && pares.some(([a, b]) => a === r && b === c)) return 'hl';
+    if (hover.type === 'node' || (hover.type === 'inc')) {
+      const id = hover.type === 'node' ? hover.id : hover.node;
+      if (tag === 'TH' && (r === id || c === id)) return 'hl';
+      if (hover.type === 'node' && tag === 'TD' && (r === id || c === id)) return 'cross';
+    }
+    if (tag === 'TH' && pares.some(([a, b]) => a === r || b === c)) return 'hl';
+    return null;
+  });
+}
+function tudo() { desenharVista(); desenharTabelas(); dica(); }
+function setHover(o) {
+  if (JSON.stringify(o) === JSON.stringify(hover)) return;
+  hover = o; desenharVista(); marcarTabelas();
+}
+
+/* ---- interação com as tabelas ---- */
+const mxI = document.getElementById('mxI'), mxW = document.getElementById('mxW');
+mxI.addEventListener('mouseover', e => {
+  const c = e.target.closest('td,th'); if (!c) return;
+  if (c.tagName === 'TD') setHover({ type: 'inc', node: +c.dataset.row, edge: +c.dataset.col });
+  else if (c.dataset.row !== undefined) setHover({ type: 'node', id: +c.dataset.row });
+  else if (c.dataset.col !== undefined) setHover({ type: 'edge', id: +c.dataset.col });
+});
+mxW.addEventListener('mouseover', e => {
+  const c = e.target.closest('td,th'); if (!c) return;
+  if (c.tagName === 'TD') setHover({ type: 'pair', u: +c.dataset.row, v: +c.dataset.col });
+  else if (c.dataset.row !== undefined) setHover({ type: 'node', id: +c.dataset.row });
+  else if (c.dataset.col !== undefined) setHover({ type: 'node', id: +c.dataset.col });
+});
+[mxI, mxW].forEach(t => t.addEventListener('mouseleave', () => setHover(null)));
+mxW.addEventListener('click', ev => {
+  const td = ev.target.closest('td'); if (!td) return;
+  const r = +td.dataset.row, c = +td.dataset.col, L = arestasDoPar(r, c), b = td.getBoundingClientRect();
+  const nome = `${nodeById(r).name}${dir() ? '→' : '–'}${nodeById(c).name}`;
+  if (pond()) {
+    pedirValor(b.left, b.bottom - 6, L.length ? fmtNum(L[0].w) : '', `peso ${nome}:`, val => {
+      if (val === '' || val === '—' || val === '-') { edges = edges.filter(e => !L.includes(e)); tudo(); return; }
+      const w = parseFloat(val.replace(',', '.')); if (!isFinite(w)) return;
+      if (L.length) L[0].w = w; else adicionarAresta(r, c, w);
+      tudo();
+    });
+  } else {
+    pedirValor(b.left, b.bottom - 6, String(L.length), `nº de arestas ${nome}:`, val => {
+      const k = Math.max(0, Math.min(5, parseInt(val, 10))); if (!isFinite(k)) return;
+      if (k < L.length) { const tira = L.slice(k); edges = edges.filter(e => !tira.includes(e)); }
+      for (let i = L.length; i < k; i++) adicionarAresta(r, c, 1);
+      tudo();
+    });
+  }
+});
+
+/* ---- edição no desenho ---- */
+const textos = {
+  vertice: 'Modo <b>Vértice</b>: clique no espaço vazio para criar; arraste para mover. Clique em um peso para editá-lo.',
+  aresta: 'Modo <b>Aresta</b>: clique na origem e depois no destino (o mesmo vértice duas vezes = laço). <kbd>Esc</kbd> cancela.',
+  apagar: 'Modo <b>Apagar</b>: clique em um vértice ou em uma aresta. Observe a coluna (ou a linha) sumir da incidência.',
+};
+function dica() {
+  document.getElementById('hint').innerHTML = (modo === 'aresta' && pendente !== null)
+    ? `Origem: <b>${nodeById(pendente).name}</b>. Agora clique no destino.` : textos[modo];
+}
+function editarPeso(id, x, y) {
+  const e = edgeById(id); if (!e) return;
+  pedirValor(x, y, fmtNum(e.w), `peso e${e.num}:`, val => {
+    const w = parseFloat(val.replace(',', '.')); if (isFinite(w)) { e.w = w; tudo(); }
+  });
+}
+const ed = ligarEditor(svg, {
+  getMode: () => modo, node: nodeById,
+  addNode(x, y) { nodes.push({ id: novoId(nodes), x, y, name: proximoNome(new Set(nodes.map(n => n.name))) }); tudo(); },
+  addEdge(u, v) {
+    const e = adicionarAresta(u, v, 1); tudo();
+    if (pond()) setTimeout(() => { const p = svg.querySelector(`[data-weight="${e.id}"]`); if (p) { const b = p.getBoundingClientRect(); editarPeso(e.id, b.left, b.bottom); } }, 60);
+  },
+  deleteNode(id) { nodes = nodes.filter(n => n.id !== id); edges = edges.filter(e => e.u !== id && e.v !== id); hover = null; tudo(); },
+  deleteEdge(id) { edges = edges.filter(e => e.id !== id); hover = null; tudo(); },
+  weightClick(id, evt) { editarPeso(id, evt.clientX, evt.clientY); },
+  moved: desenharVista,
+  setPending(id) { pendente = id; desenharVista(); dica(); },
+  hover: setHover,
+});
+barraModos(document.getElementById('toolbar'), [['vertice', '● Vértice', 'v'], ['aresta', '→ Aresta', 'a'], ['apagar', '✕ Apagar', 'x']],
+  'vertice', k => { modo = k; ed.cancelar(); dica(); desenharVista(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') ed.cancelar(); });
+chkDir.addEventListener('change', tudo);
+chkPond.addEventListener('change', () => { mxW._prev = null; tudo(); });
+document.getElementById('preset').addEventListener('change', e => { carregar(e.target.value); e.target.value = ''; });
+document.getElementById('limpar').addEventListener('click', () => { nodes = []; edges = []; hover = null; tudo(); });
+carregar('rede');
+</script>
+</body>
+</html>
